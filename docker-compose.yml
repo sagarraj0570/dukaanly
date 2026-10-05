@@ -1,0 +1,71 @@
+# =============================================================================
+#  Dukaanly — Local Development Infrastructure
+#  Manages: PostgreSQL 16 + PostGIS 3.4, Redis 7
+#
+#  Usage:
+#    docker compose up -d          # start
+#    docker compose ps             # check status
+#    docker compose down           # stop (keeps volumes)
+#    docker compose down -v        # stop + wipe volumes (clean slate)
+# =============================================================================
+
+services:
+
+  # ── PostgreSQL 16 with PostGIS 3.4 ─────────────────────────────────────────
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: dukaanly_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      # Only bind to localhost — do not expose to 0.0.0.0 in dev
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Run any *.sql / *.sh files in this dir on first start
+      - ./backend/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - dukaanly_net
+
+  # ── Redis 7 ────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: dukaanly_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --save 60 1
+      --loglevel warning
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - dukaanly_net
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ── Isolated network ──────────────────────────────────────────────────────────
+networks:
+  dukaanly_net:
+    driver: bridge

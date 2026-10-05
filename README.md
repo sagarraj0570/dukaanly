@@ -15,7 +15,7 @@ A portfolio-grade hyperlocal marketplace connecting Customers, Shop Owners, and 
 ## Getting Started (Local Development)
 
 ### Prerequisites
-- Docker & Docker Compose
+- Docker Desktop (with Linux containers mode)
 - Node.js 20+
 - Python 3.12+
 
@@ -24,7 +24,7 @@ A portfolio-grade hyperlocal marketplace connecting Customers, Shop Owners, and 
 git clone <repo-url>
 cd Dukaanly
 cp .env.example .env
-# Fill in required values in .env
+# Edit .env — set POSTGRES_PASSWORD and JWT_SECRET_KEY at minimum
 ```
 
 ### 2. Start infrastructure
@@ -32,7 +32,27 @@ cp .env.example .env
 docker compose up -d
 ```
 
-### 3. Run backend
+This starts:
+- **PostgreSQL 16 + PostGIS 3.4** on `localhost:5433` (host port 5433 → container port 5432)
+- **Redis 7** on `localhost:6379`
+
+Both services have health checks. Volumes `dukaanly_postgres_data` and `dukaanly_redis_data` persist data across restarts.
+
+### 3. Verify infrastructure is healthy
+```bash
+docker compose ps                          # both should show (healthy)
+docker exec dukaanly_postgres pg_isready -U dukaanly_user -d dukaanly
+docker exec dukaanly_redis redis-cli ping  # should respond PONG
+docker exec dukaanly_postgres psql -U dukaanly_user -d dukaanly -c "SELECT PostGIS_Version();"
+```
+
+### 4. Stop / tear down
+```bash
+docker compose down        # stop, keep volumes (data preserved)
+docker compose down -v     # stop + wipe volumes (clean slate)
+```
+
+### 5. Run backend
 ```bash
 cd backend
 pip install -r requirements.txt
@@ -40,7 +60,7 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-### 4. Run frontend
+### 6. Run frontend
 ```bash
 cd frontend
 npm install
