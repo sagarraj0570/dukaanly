@@ -55,12 +55,29 @@ docker compose down -v     # stop + wipe volumes (clean slate)
 ### 5. Run backend
 ```bash
 cd backend
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+# Mac/Linux:
+# source venv/bin/activate
+
 pip install -r requirements.txt
-alembic upgrade head
 uvicorn app.main:app --reload
 ```
+Once running, the backend provides:
+- **API Documentation**: [http://localhost:8000/api/v1/docs](http://localhost:8000/api/v1/docs)
+- **Liveness Check**: [http://localhost:8000/api/v1/health/live](http://localhost:8000/api/v1/health/live)
+- **Readiness Check**: [http://localhost:8000/api/v1/health/ready](http://localhost:8000/api/v1/health/ready)
 
-### 6. Run frontend
+### 6. Run backend tests
+Make sure the infrastructure is running first (for the readiness check tests).
+```bash
+cd backend
+# With virtual environment activated:
+pytest -v
+```
+
+### 7. Run frontend
 ```bash
 cd frontend
 npm install
