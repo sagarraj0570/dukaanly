@@ -4,11 +4,6 @@ from app.db.session import engine, get_db
 
 pytestmark = pytest.mark.asyncio
 
-@pytest.fixture(autouse=True)
-async def cleanup_engine():
-    yield
-    await engine.dispose()
-
 async def test_sqlalchemy_engine_connection():
     """Verify that the async engine can connect and execute a simple query."""
     async with engine.connect() as conn:

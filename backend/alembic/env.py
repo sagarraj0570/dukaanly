@@ -11,7 +11,7 @@ from alembic import context
 from app.core.config import settings
 from app.db.base import Base
 # Import all models here so Alembic can discover them for autogenerate
-# e.g., from app.models.user import User
+from app.models import User, RefreshToken
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

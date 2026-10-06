@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = ""
     
     REDIS_URL: str = "redis://localhost:6379/0"
+    
+    JWT_SECRET_KEY: str = "supersecret_for_development_only"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     @property
     def database_url(self) -> str:
