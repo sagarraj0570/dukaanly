@@ -77,6 +77,33 @@ cd backend
 pytest -v
 ```
 
+## Database Migrations (Alembic)
+Dukaanly uses Alembic for database migrations. SQLAlchemy declarative models should not use `create_all()`.
+
+### Creating a new migration
+When you change or add models in `backend/app/models/` and have imported them in `backend/alembic/env.py` or `backend/app/db/base.py`:
+```bash
+alembic revision --autogenerate -m "description_of_change"
+```
+
+### Applying migrations
+To apply all pending migrations up to the latest:
+```bash
+alembic upgrade head
+```
+
+### Inspecting migration state
+```bash
+alembic current
+alembic history
+```
+
+### Rolling back migrations
+To rollback the last migration:
+```bash
+alembic downgrade -1
+```
+
 ### 7. Run frontend
 ```bash
 cd frontend
