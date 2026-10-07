@@ -23,7 +23,15 @@
 - `GET /shops/{shop_id}/products` - Browse a shop's products.
 - `GET /products/{product_id}` - Get product details.
 - `PATCH /products/{product_id}` - Update a product's catalog details and price.
-- `PATCH /products/{product_id}/inventory` - Update product stock (Future).
+- `GET /products/{product_id}/inventory` - Get product stock.
+- `PATCH /products/{product_id}/inventory` - Update product stock (Optimistic locking).
+
+### Cart
+- `GET /cart` - Retrieve current customer's cart.
+- `POST /cart/items` - Add a product to the cart (enforces one-shop-per-cart).
+- `PATCH /cart/items/{item_id}` - Update item quantity.
+- `DELETE /cart/items/{item_id}` - Remove an item.
+- `DELETE /cart` - Clear the cart.
 
 ### Orders & Checkout
 - `POST /orders` - Place a new order (Checkout).
