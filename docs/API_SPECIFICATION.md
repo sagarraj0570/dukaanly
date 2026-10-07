@@ -41,7 +41,31 @@
 
 ## 3. Example Payloads & Scenarios
 
-### A. Placing an Order (with Race Condition Handling)
+### A. Updating Inventory Stock (with Optimistic Locking)
+**Request**: `PATCH /products/{product_id}/inventory`
+```json
+{
+  "stock": 10,
+  "expected_version": 1
+}
+```
+**Response (Success - 200 OK)**:
+```json
+{
+  "product_id": "uuid-abcd",
+  "stock": 10,
+  "version": 2,
+  "updated_at": "2026-10-04T20:55:00Z"
+}
+```
+**Response (Race Condition / Version Mismatch - 409 Conflict)**:
+```json
+{
+  "detail": "Inventory mismatch or stock was modified by another transaction. Please fetch the latest version and retry."
+}
+```
+
+### B. Placing an Order (with Race Condition Handling)
 **Request**: `POST /orders`
 ```json
 {

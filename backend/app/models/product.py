@@ -29,3 +29,4 @@ class Product(Base):
 
     # Relationships
     shop = relationship("Shop", backref="products")
+    inventory = relationship("Inventory", back_populates="product", uselist=False, cascade="all, delete-orphan")

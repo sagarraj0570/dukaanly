@@ -22,6 +22,8 @@ async def verify_shop_ownership(db: AsyncSession, shop_id: uuid.UUID, user: User
         
     return shop
 
+from app.models.inventory import Inventory
+
 async def create_product(db: AsyncSession, shop_id: uuid.UUID, product_in: ProductCreate, owner: User) -> Product:
     await verify_shop_ownership(db, shop_id, owner)
     
@@ -34,7 +36,16 @@ async def create_product(db: AsyncSession, shop_id: uuid.UUID, product_in: Produ
         image_url=product_in.image_url,
         is_active=True
     )
+    
+    # Initialize inventory explicitly
+    db_inventory = Inventory(
+        product=db_product,
+        stock=0,
+        version=1
+    )
+    
     db.add(db_product)
+    db.add(db_inventory)
     await db.commit()
     await db.refresh(db_product)
     return db_product

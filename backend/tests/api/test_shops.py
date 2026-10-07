@@ -79,7 +79,7 @@ async def test_shop_crud_and_ownership(async_client: AsyncClient):
     assert bad_update_res.status_code == 403
     
     # 5. List shops (Pagination test)
-    list_res = await async_client.get("/api/v1/shops?page=1&size=10")
+    list_res = await async_client.get("/api/v1/shops?page=1&size=100")
     assert list_res.status_code == 200
     list_data = list_res.json()
     assert list_data["total"] >= 1
