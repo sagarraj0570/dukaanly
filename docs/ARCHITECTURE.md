@@ -58,7 +58,14 @@ When an order hits `READY_FOR_PICKUP` (or shortly before):
 2. Backend assigns the closest rider or broadcasts a ping to the top N closest riders.
 3. The first rider to accept transitions the order to `RIDER_ASSIGNED`.
 
-### D. Real-Time Tracking Architecture
+### D. Payment Architecture & Integration
+Dukaanly abstracts payment processing to allow provider flexibility:
+- **Provider Interface (`PaymentProvider`)**: Defines generic contracts (`create_payment_order`, `verify_payment`, `verify_webhook`).
+- **Adapter (`RazorpayPaymentProvider`)**: Implements the generic interface mapping Dukaanly domain models to Razorpay specific REST API calls.
+- **State Isolation**: The Payment state (`created`, `captured`, `failed`) is isolated from the Order state (`pending`, `confirmed`). An order transitions to `confirmed` ONLY when a payment is safely captured or a webhook verifies it.
+- **Idempotency**: Webhooks and verification endpoints are fully idempotent. Re-sending a webhook will not duplicate order state transitions.
+
+### E. Real-Time Tracking Architecture
 - **WebSockets**: The client establishes a WS connection to the FastAPI server.
 - **Pub/Sub**: When a rider updates their location via REST or WS, the backend publishes the update to a Redis channel (e.g., `order_tracking:<order_id>`).
 - **Broadcast**: Any client subscribed to that WebSocket room receives the live coordinate updates.

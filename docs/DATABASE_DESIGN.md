@@ -19,6 +19,7 @@ erDiagram
     
     ORDERS ||--o{ ORDER_ITEMS : contains
     ORDERS ||--o{ ORDER_STATUS_EVENTS : logs
+    ORDERS ||--o| PAYMENTS : requires
     RIDERS ||--o{ ORDERS : delivers
     
     USERS {
@@ -78,6 +79,19 @@ erDiagram
         uuid product_id FK
         int quantity
         decimal unit_price
+    }
+
+    PAYMENTS {
+        uuid id PK
+        uuid order_id FK
+        string provider "razorpay"
+        string provider_payment_id UK
+        string provider_order_id UK
+        decimal amount
+        string currency
+        string status
+        datetime created_at
+        datetime paid_at
     }
 
     ORDER_STATUS_EVENTS {

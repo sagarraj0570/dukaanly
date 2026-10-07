@@ -40,6 +40,11 @@
 - `GET /shops/{shop_id}/orders` - List shop orders (Shop Owner).
 - `PATCH /shops/{shop_id}/orders/{order_id}/status` - Update order state (Shop Owner).
 
+### Payments
+- `POST /orders/{order_id}/payment` - Initiate payment for an order. Returns provider details for client SDK.
+- `POST /payments/verify` - Verify client-side payment success cryptographically.
+- `POST /payments/webhook` - Provider webhook handler (idempotent, server-to-server).
+
 ### Riders
 - `POST /riders` - Register as a rider.
 - `PATCH /riders/me/status` - Toggle ONLINE/OFFLINE.

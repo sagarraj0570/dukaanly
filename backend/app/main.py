@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.routes import health, auth, shops, products, cart, orders
+from app.api.routes import health, auth, shops, products, cart, orders, payments
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -28,6 +28,7 @@ def create_app() -> FastAPI:
     app.include_router(products.router, prefix=f"{settings.API_PREFIX}/products", tags=["Products"])
     app.include_router(cart.router, prefix=f"{settings.API_PREFIX}/cart", tags=["Cart"])
     app.include_router(orders.router, prefix=f"{settings.API_PREFIX}/orders", tags=["Orders"])
+    app.include_router(payments.router, prefix=f"{settings.API_PREFIX}", tags=["Payments"])
 
     # Register exception handlers
     from app.core.exceptions import global_exception_handler
