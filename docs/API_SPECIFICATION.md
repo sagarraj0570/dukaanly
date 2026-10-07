@@ -34,10 +34,11 @@
 - `DELETE /cart` - Clear the cart.
 
 ### Orders & Checkout
-- `POST /orders` - Place a new order (Checkout).
-- `GET /orders` - List orders for the current user (Customer/Shop/Rider).
-- `GET /orders/{order_id}` - Order details.
-- `PATCH /orders/{order_id}/status` - Update order state (Shop/Rider).
+- `POST /orders/checkout` - Checkout the current cart and place a new order. Requires `idempotency_key` payload.
+- `GET /orders` - List customer's orders.
+- `GET /orders/{order_id}` - Get customer order details.
+- `GET /shops/{shop_id}/orders` - List shop orders (Shop Owner).
+- `PATCH /shops/{shop_id}/orders/{order_id}/status` - Update order state (Shop Owner).
 
 ### Riders
 - `POST /riders` - Register as a rider.
@@ -74,19 +75,10 @@
 ```
 
 ### B. Placing an Order (with Race Condition Handling)
-**Request**: `POST /orders`
+**Request**: `POST /orders/checkout`
 ```json
 {
-  "shop_id": "uuid-1234",
-  "delivery_location": {"lat": 12.9716, "lng": 77.5946},
-  "items": [
-    {
-      "product_id": "uuid-abcd",
-      "quantity": 2,
-      "expected_version": 5
-    }
-  ],
-  "payment_method": "UPI_MOCK"
+  "idempotency_key": "unique-client-guid-xyz"
 }
 ```
 **Response (Success - 201 Created)**:

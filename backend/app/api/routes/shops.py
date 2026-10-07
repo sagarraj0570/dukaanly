@@ -84,3 +84,31 @@ async def list_shop_products(
         "page": page,
         "size": size
     }
+
+from app.schemas.order import OrderListResponse, OrderResponse, OrderStatusUpdate
+from app.services import order as order_service
+
+@router.get("/{shop_id}/orders", response_model=OrderListResponse)
+async def list_shop_orders(
+    shop_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.shop_owner))
+):
+    """List orders belonging to a shop (owner only)."""
+    orders, total = await order_service.get_shop_orders(db=db, shop_id=shop_id, owner=current_user, page=page, size=size)
+    return {"items": orders, "total": total, "page": page, "size": size}
+
+@router.patch("/{shop_id}/orders/{order_id}/status", response_model=OrderResponse)
+async def update_shop_order_status(
+    shop_id: uuid.UUID,
+    order_id: uuid.UUID,
+    status_update: OrderStatusUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.shop_owner))
+):
+    """Update order status (owner only)."""
+    return await order_service.update_order_status(
+        db=db, shop_id=shop_id, order_id=order_id, new_status=status_update.status, owner=current_user
+    )
