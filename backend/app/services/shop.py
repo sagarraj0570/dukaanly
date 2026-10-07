@@ -78,7 +78,7 @@ async def get_shops(
     total = count_result.scalar_one()
     
     # Pagination
-    stmt = stmt.offset((page - 1) * size).limit(size)
+    stmt = stmt.order_by(Shop.created_at.desc()).offset((page - 1) * size).limit(size)
     result = await db.execute(stmt)
     shops = result.scalars().all()
     

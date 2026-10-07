@@ -45,11 +45,15 @@
 - `POST /payments/verify` - Verify client-side payment success cryptographically.
 - `POST /payments/webhook` - Provider webhook handler (idempotent, server-to-server).
 
-### Riders
-- `POST /riders` - Register as a rider.
-- `PATCH /riders/me/status` - Toggle ONLINE/OFFLINE.
-- `PATCH /riders/me/location` - Update live coordinates.
-- `GET /orders/assignable` - Internal/Webhook: trigger rider assignment logic.
+### Riders & Deliveries
+- `POST /riders/profile` - Register as a rider (Rider Role only).
+- `GET /riders/me` - Get own rider profile.
+- `PATCH /riders/me/availability` - Toggle `is_available` true/false.
+- `POST /deliveries` - Create delivery for a confirmed order (Shop Owner).
+- `GET /deliveries/{delivery_id}` - Get delivery details (Authorized roles only).
+- `POST /deliveries/{delivery_id}/assign` - Manually assign a rider to a delivery (Shop Owner/Admin).
+- `PATCH /deliveries/{delivery_id}/status` - Update delivery operational status (Rider/Admin).
+- `GET /riders/me/deliveries` - List deliveries assigned to the current rider.
 
 ---
 

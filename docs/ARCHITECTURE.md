@@ -51,12 +51,18 @@ To prevent race conditions (e.g., two users buying the last item simultaneously)
 - On update: `UPDATE inventory SET stock = stock - X, version = version + 1 WHERE product_id = Y AND version = Z`.
 - If 0 rows are updated, it means another transaction modified the stock first. The backend raises an exception (HTTP 409 Conflict), and the user is prompted to retry or notified of out-of-stock.
 
-### C. Rider Assignment Workflow (PostGIS)
-When an order hits `READY_FOR_PICKUP` (or shortly before):
-1. Backend queries PostGIS for available riders within a radius:
-   `SELECT * FROM riders WHERE status = 'ONLINE' AND ST_DWithin(location, shop_location, 5000);`
-2. Backend assigns the closest rider or broadcasts a ping to the top N closest riders.
-3. The first rider to accept transitions the order to `RIDER_ASSIGNED`.
+### C. Delivery & Rider Assignment Strategy (Phase 1)
+For the MVP, deliveries are managed manually to ensure domain correctness before adding automated geolocation.
+1. **Creation**: When an order transitions to `confirmed` (via payment), a Shop Owner manually initiates a `Delivery` record.
+2. **Assignment Rules**: 
+   - Only `Shop Owners` (managing their store's orders) or `Admins` can assign riders.
+   - The assigned rider must have an active `RiderProfile` and `is_available = True`.
+   - **Workload Concurrency**: Using a PostgreSQL partial unique index, a rider is strictly constrained to **one active delivery** (`assigned`, `picked_up`, or `out_for_delivery`). Simultaneous assignments to the same rider will structurally throw a `409 Conflict`.
+3. **State Sync**: As a Rider updates the Delivery status (`picked_up` -> `out_for_delivery` -> `delivered`), the `Order` model is logically synced in real-time within the same transaction to maintain cross-domain consistency.
+
+### C2. Rider Assignment Workflow (PostGIS - Deferred)
+When real-time tracking is implemented, assignment will use:
+`SELECT * FROM riders WHERE status = 'ONLINE' AND ST_DWithin(location, shop_location, 5000);`
 
 ### D. Payment Architecture & Integration
 Dukaanly abstracts payment processing to allow provider flexibility:
