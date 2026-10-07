@@ -19,10 +19,11 @@
 - `GET /shops/{shop_id}` - Get shop details.
 
 ### Catalog & Inventory
-- `GET /products` - Get master catalog.
-- `POST /shops/{shop_id}/listings` - Add a product to a shop's catalog.
-- `PUT /shops/{shop_id}/listings/{listing_id}` - Update price/stock.
-- `GET /shops/{shop_id}/listings` - Browse a shop's inventory.
+- `POST /shops/{shop_id}/products` - Add a product to a shop's catalog.
+- `GET /shops/{shop_id}/products` - Browse a shop's products.
+- `GET /products/{product_id}` - Get product details.
+- `PATCH /products/{product_id}` - Update a product's catalog details and price.
+- `PATCH /products/{product_id}/inventory` - Update product stock (Future).
 
 ### Orders & Checkout
 - `POST /orders` - Place a new order (Checkout).
@@ -48,7 +49,7 @@
   "delivery_location": {"lat": 12.9716, "lng": 77.5946},
   "items": [
     {
-      "shop_listing_id": "uuid-abcd",
+      "product_id": "uuid-abcd",
       "quantity": 2,
       "expected_version": 5
     }
@@ -67,7 +68,7 @@
 **Response (Race Condition / Stock Out - 409 Conflict)**:
 ```json
 {
-  "detail": "Inventory mismatch or stock unavailable for listing: uuid-abcd. Please refresh cart."
+  "detail": "Inventory mismatch or stock unavailable for product: uuid-abcd. Please refresh cart."
 }
 ```
 

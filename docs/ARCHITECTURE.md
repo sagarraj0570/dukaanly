@@ -47,8 +47,8 @@ stateDiagram-v2
 
 ### B. Inventory Consistency Mechanism (Concurrency Safety)
 To prevent race conditions (e.g., two users buying the last item simultaneously), we use **Optimistic Locking**:
-- The `ShopListing` (or `Inventory`) table includes a `version` integer column.
-- On update: `UPDATE shop_listings SET stock = stock - X, version = version + 1 WHERE id = Y AND version = Z`.
+- The `Inventory` table includes a `version` integer column.
+- On update: `UPDATE inventory SET stock = stock - X, version = version + 1 WHERE product_id = Y AND version = Z`.
 - If 0 rows are updated, it means another transaction modified the stock first. The backend raises an exception (HTTP 409 Conflict), and the user is prompted to retry or notified of out-of-stock.
 
 ### C. Rider Assignment Workflow (PostGIS)

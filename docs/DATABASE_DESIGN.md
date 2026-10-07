@@ -11,16 +11,15 @@ erDiagram
     USERS ||--o{ ORDERS : places
     USERS ||--o| RIDERS : is
     
-    SHOPS ||--o{ SHOP_LISTINGS : has
+    SHOPS ||--o{ PRODUCTS : catalogs
     SHOPS ||--o{ ORDERS : receives
     
-    PRODUCTS ||--o{ SHOP_LISTINGS : templates
+    PRODUCTS ||--|| INVENTORY : has
+    PRODUCTS ||--o{ ORDER_ITEMS : supplies
     
     ORDERS ||--o{ ORDER_ITEMS : contains
     ORDERS ||--o{ ORDER_STATUS_EVENTS : logs
     RIDERS ||--o{ ORDERS : delivers
-    
-    SHOP_LISTINGS ||--o{ ORDER_ITEMS : supplies
     
     USERS {
         uuid id PK
@@ -44,21 +43,21 @@ erDiagram
 
     PRODUCTS {
         uuid id PK
+        uuid shop_id FK
         string name
         string category
+        decimal price
         string image_url
         string description
+        boolean is_active
+        datetime created_at
     }
 
-    SHOP_LISTINGS {
+    INVENTORY {
         uuid id PK
-        uuid shop_id FK
-        uuid product_id FK "Nullable (if custom product)"
-        string custom_name "If no product_id"
-        decimal price
+        uuid product_id FK
         int stock
         int version "Optimistic Locking Column"
-        boolean is_available
     }
 
     ORDERS {
@@ -76,7 +75,7 @@ erDiagram
     ORDER_ITEMS {
         uuid id PK
         uuid order_id FK
-        uuid shop_listing_id FK
+        uuid product_id FK
         int quantity
         decimal unit_price
     }
@@ -98,21 +97,27 @@ erDiagram
     }
 ```
 
-## 3. Concurrency Control (Optimistic Locking)
-To handle concurrent stock updates, the `SHOP_LISTINGS` table includes a `version` column.
+## 3. Entity Responsibilities
+
+- **Shop owns Product**: Each product listing is explicitly owned by a single shop.
+- **Product**: Contains all catalog information (name, description, category, image) and price. It does **not** contain stock quantities.
+- **Inventory**: Contains all stock-related state (stock level, version column). An inventory record belongs to exactly one product.
+
+## 4. Concurrency Control (Optimistic Locking)
+To handle concurrent stock updates, the `INVENTORY` table includes a `version` column.
 
 When an order is placed, the system attempts to deduct stock like this:
 ```sql
-UPDATE shop_listings 
+UPDATE inventory 
 SET stock = stock - :quantity, 
     version = version + 1 
-WHERE id = :listing_id 
+WHERE product_id = :product_id 
   AND stock >= :quantity 
   AND version = :expected_version;
 ```
 If the row count returned is `0`, a race condition occurred (another transaction changed the stock or stock is insufficient). The backend will abort the transaction and return a `409 Conflict`.
 
-## 4. Geospatial Indexing
+## 5. Geospatial Indexing
 To support fast nearest-rider and nearby-shop queries, we create **GiST indexes** on the geometry columns.
 
 ```sql
