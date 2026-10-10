@@ -17,7 +17,13 @@ async def create_delivery(
     current_user: User = Depends(get_current_user)
 ):
     """Create a delivery for a confirmed order."""
-    return await delivery_service.create_delivery(db=db, order_id=request.order_id, owner=current_user)
+    return await delivery_service.create_delivery(
+        db=db, 
+        order_id=request.order_id, 
+        owner=current_user,
+        dest_lat=request.destination_latitude,
+        dest_lon=request.destination_longitude
+    )
 
 @router.get("/{delivery_id}", response_model=DeliveryResponse)
 async def get_delivery(
@@ -47,3 +53,23 @@ async def update_delivery_status(
 ):
     """Update delivery operational status."""
     return await delivery_service.update_delivery_status(db=db, delivery_id=delivery_id, new_status=request.status, actor=current_user)
+
+from app.schemas.delivery import RiderCandidateResponse
+
+@router.get("/{delivery_id}/rider-candidates", response_model=list[RiderCandidateResponse])
+async def get_rider_candidates(
+    delivery_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get eligible riders nearby."""
+    return await delivery_service.get_rider_candidates(db=db, delivery_id=delivery_id, actor=current_user)
+
+@router.post("/{delivery_id}/auto-assign", response_model=DeliveryResponse)
+async def auto_assign_delivery(
+    delivery_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Automatically assign the nearest eligible rider."""
+    return await delivery_service.auto_assign_delivery(db=db, delivery_id=delivery_id, actor=current_user)

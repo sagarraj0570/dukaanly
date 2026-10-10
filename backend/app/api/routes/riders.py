@@ -36,6 +36,18 @@ async def update_my_availability(
     """Update the current rider's availability."""
     return await rider_service.update_rider_availability(db=db, user=current_user, is_available=request.is_available)
 
+from app.schemas.rider import RiderLocationUpdate
+
+@router.patch("/me/location", response_model=RiderProfileResponse)
+async def update_my_location(
+    request: RiderLocationUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.rider))
+):
+    """Update the current rider's location."""
+    return await rider_service.update_rider_location(db=db, user=current_user, latitude=request.latitude, longitude=request.longitude)
+
+
 @router.get("/me/deliveries", response_model=list[DeliveryResponse])
 async def get_my_deliveries(
     skip: int = 0,

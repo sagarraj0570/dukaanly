@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 import uuid
@@ -35,6 +35,18 @@ async def update_rider_availability(db: AsyncSession, user: User, is_available: 
     profile = await get_rider_profile_by_user(db, user.id)
     
     profile.is_available = is_available
+    await db.commit()
+    await db.refresh(profile)
+    
+    return profile
+
+async def update_rider_location(db: AsyncSession, user: User, latitude: float, longitude: float) -> RiderProfile:
+    profile = await get_rider_profile_by_user(db, user.id)
+    
+    point_wkt = f"SRID=4326;POINT({longitude} {latitude})"
+    profile.location = point_wkt
+    profile.location_updated_at = func.now()
+    
     await db.commit()
     await db.refresh(profile)
     

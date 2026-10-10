@@ -31,6 +31,9 @@ def create_app() -> FastAPI:
     app.include_router(payments.router, prefix=f"{settings.API_PREFIX}", tags=["Payments"])
     app.include_router(riders.router, prefix=f"{settings.API_PREFIX}/riders", tags=["Riders"])
     app.include_router(deliveries.router, prefix=f"{settings.API_PREFIX}/deliveries", tags=["Deliveries"])
+    
+    from app.api.routes import ws_deliveries
+    app.include_router(ws_deliveries.router, prefix=f"{settings.API_PREFIX}/ws/deliveries", tags=["WebSocket Deliveries"])
 
     # Register exception handlers
     from app.core.exceptions import global_exception_handler

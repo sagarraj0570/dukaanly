@@ -27,6 +27,8 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+
 
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"

@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     RAZORPAY_WEBHOOK_SECRET: str | None = None
     CURRENCY: str = "INR"
 
+    # Rider & Geospatial
+    RIDER_SEARCH_RADIUS_METERS: int = 5000
+    RIDER_LOCATION_MAX_AGE_SECONDS: int = 900
+    RIDER_LOCATION_MIN_UPDATE_INTERVAL_SECONDS: float = 1.0
+
     @property
     def database_url(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"

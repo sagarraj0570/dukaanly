@@ -79,3 +79,4 @@ This plan is structured for a **solo** build focused on a robust core MVP. With 
 
 ## Recommended First Implementation Milestone
 **Milestone 1**: Environment Setup & Core Auth. We must establish the Docker containers (especially Postgres with PostGIS) and the JWT authentication foundation before any domain logic can be built.
+

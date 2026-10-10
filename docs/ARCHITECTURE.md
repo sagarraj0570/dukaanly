@@ -66,10 +66,15 @@ When real-time tracking is implemented, assignment will use:
 
 ### D. Payment Architecture & Integration
 Dukaanly abstracts payment processing to allow provider flexibility:
-- **Provider Interface (`PaymentProvider`)**: Defines generic contracts (`create_payment_order`, `verify_payment`, `verify_webhook`).
-- **Adapter (`RazorpayPaymentProvider`)**: Implements the generic interface mapping Dukaanly domain models to Razorpay specific REST API calls.
-- **State Isolation**: The Payment state (`created`, `captured`, `failed`) is isolated from the Order state (`pending`, `confirmed`). An order transitions to `confirmed` ONLY when a payment is safely captured or a webhook verifies it.
-- **Idempotency**: Webhooks and verification endpoints are fully idempotent. Re-sending a webhook will not duplicate order state transitions.
+
+> [!NOTE] 
+> As per the project scope, **real-money transactions and production payment gateways are not implemented**. 
+> The application uses a provider abstraction to simulate payment flows, verifying idempotency and state changes strictly in a sandbox/mocked environment.
+
+- **Provider Interface (PaymentProvider)**: Defines generic contracts (create_payment_order, erify_payment, erify_webhook).
+- **Adapter**: Implements the generic interface mapping Dukaanly domain models to mocked or sandbox responses.
+- **State Isolation**: The Payment state (created, captured, ailed) is isolated from the Order state (pending, confirmed). An order transitions to confirmed ONLY when a payment is safely captured or a webhook verifies it.
+- **Idempotency**: Webhooks and verification endpoints are fully idempotent. Re-sending a webhook will not duplicate order state transitions. Re-sending a webhook will not duplicate order state transitions.
 
 ### E. Real-Time Tracking Architecture
 - **WebSockets**: The client establishes a WS connection to the FastAPI server.
@@ -107,3 +112,18 @@ Dukaanly/
 ├── docker-compose.yml
 └── AGENTS.md             # AI Agent Instructions
 ```
+## Real-Time Infrastructure (WebSockets & Redis)
+For real-time delivery state and location updates, Dukaanly uses FastAPI WebSockets and Redis Pub/Sub for event distribution.
+The crucial architectural rule is that **PostgreSQL remains the single authoritative source of truth**.
+
+### Transport Flow
+1. **Source of Truth**: When a rider sends a location update via WebSocket, it is first validated, timestamped, and written to PostgreSQL using PostGIS geometry.
+2. **Event Distribution**: After the database transaction successfully commits, an event payload is published to a delivery-scoped Redis channel (e.g. \dukaanly:delivery:<id>\).
+3. **Client Transport**: FastAPI WebSocket handlers subscribe to these Redis channels and broadcast events to connected, authorized clients (customers, shop owners).
+
+### Real-Time Characteristics
+- **No Redis Canonical State**: Redis is not used to persist location history, active assignments, or delivery status. If Redis crashes, PostgreSQL is unharmed, though real-time broadcasts might fail temporarily.
+- **Location Throttling**: The backend enforces \RIDER_LOCATION_MIN_UPDATE_INTERVAL_SECONDS\ (default: 1s) to prevent spamming the database with rapid updates.
+- **Reconnection Semantics**: Clients connecting or reconnecting receive a \connection.ready\ snapshot directly from the authoritative database state. There is no historical replay of events.
+- **Isolation**: Each WebSocket connection is authenticated via JWT and strictly authorized to access only the delivery belonging to its user role (customer, shop owner, rider).
+
