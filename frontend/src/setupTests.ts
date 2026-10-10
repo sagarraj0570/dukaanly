@@ -71,6 +71,78 @@ export const handlers = [
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     })
+  }),
+  http.get('http://localhost:8000/api/v1/cart', () => {
+    return HttpResponse.json({
+      id: 'cart-1',
+      customer_id: 'cust-1',
+      shop_id: 'shop-1',
+      items: [
+        {
+          id: 'item-1',
+          product_id: 'prod-1',
+          quantity: 2,
+          product_name: 'Test Product Details',
+          product_price: 150.00,
+          item_total: 300.00
+        }
+      ],
+      total_amount: 300.00
+    })
+  }),
+  http.post('http://localhost:8000/api/v1/cart/items', () => {
+    return HttpResponse.json({
+      id: 'cart-1',
+      customer_id: 'cust-1',
+      shop_id: 'shop-1',
+      items: [
+        {
+          id: 'item-1',
+          product_id: 'prod-1',
+          quantity: 3, // quantity updated after add
+          product_name: 'Test Product Details',
+          product_price: 150.00,
+          item_total: 450.00
+        }
+      ],
+      total_amount: 450.00
+    })
+  }),
+  http.patch('http://localhost:8000/api/v1/cart/items/:id', () => {
+    return HttpResponse.json({
+      id: 'cart-1',
+      customer_id: 'cust-1',
+      shop_id: 'shop-1',
+      items: [
+        {
+          id: 'item-1',
+          product_id: 'prod-1',
+          quantity: 1, // simulated quantity update
+          product_name: 'Test Product Details',
+          product_price: 150.00,
+          item_total: 150.00
+        }
+      ],
+      total_amount: 150.00
+    })
+  }),
+  http.delete('http://localhost:8000/api/v1/cart/items/:id', () => {
+    return HttpResponse.json({
+      id: 'cart-1',
+      customer_id: 'cust-1',
+      shop_id: 'shop-1',
+      items: [],
+      total_amount: 0.00
+    })
+  }),
+  http.delete('http://localhost:8000/api/v1/cart', () => {
+    return HttpResponse.json({
+      id: 'cart-1',
+      customer_id: 'cust-1',
+      shop_id: 'shop-1',
+      items: [],
+      total_amount: 0.00
+    })
   })
 ]
 

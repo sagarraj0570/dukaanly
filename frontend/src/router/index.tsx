@@ -8,6 +8,7 @@ import { Login } from '@/pages/Login'
 import { CustomerDashboard } from '@/pages/CustomerDashboard'
 import { ShopDetail } from '@/pages/ShopDetail'
 import { ProductDetail } from '@/pages/ProductDetail'
+import { CustomerCart } from '@/pages/CustomerCart'
 import { ShopDashboard } from '@/pages/ShopDashboard'
 import { RiderDashboard } from '@/pages/RiderDashboard'
 
@@ -34,7 +35,8 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <CustomerDashboard /> },
               { path: 'shops/:id', element: <ShopDetail /> },
-              { path: 'products/:id', element: <ProductDetail /> }
+              { path: 'products/:id', element: <ProductDetail /> },
+              { path: 'cart', element: <CustomerCart /> }
             ]
           }
         ]

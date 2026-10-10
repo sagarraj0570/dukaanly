@@ -1,21 +1,44 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useProduct } from '@/hooks/useProducts'
 import { useShop } from '@/hooks/useShops'
+import { useAddToCart } from '@/hooks/useCart'
 import { ErrorState } from '@/components/ErrorState'
 import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
-import { ArrowLeft, Package, Store } from 'lucide-react'
+import { ArrowLeft, Package, Store, ShoppingCart, Check } from 'lucide-react'
 import { useState } from 'react'
+import type { AxiosError } from 'axios'
 
 export const ProductDetail = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [imageError, setImageError] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
+  const [added, setAdded] = useState(false)
   
   const { data: product, isLoading, isError, error, refetch } = useProduct(id || '')
   
   // We optionally fetch the shop to display shop navigation gracefully
   const { data: shop } = useShop(product?.shop_id || '')
+
+  const { mutate: addToCart, isPending: isAdding } = useAddToCart()
+
+  const handleAddToCart = () => {
+    setAddError(null)
+    setAdded(false)
+    if (!product) return
+
+    addToCart({ product_id: product.id, quantity: 1 }, {
+      onSuccess: () => {
+        setAdded(true)
+        setTimeout(() => setAdded(false), 3000)
+      },
+      onError: (err: AxiosError<any>) => {
+        const errorMsg = err.response?.data?.detail || err.message
+        setAddError(errorMsg)
+      }
+    })
+  }
 
   if (isLoading) {
     return (
@@ -113,8 +136,35 @@ export const ProductDetail = () => {
             </span>
           </div>
           
-          <div className="mt-6 p-4 border rounded-lg bg-gray-50 text-center">
-            <p className="text-sm text-gray-500 font-medium">Add to Cart functionality is pending Sub-task 17C.</p>
+          <div className="mt-6 flex flex-col gap-3">
+            {addError && (
+              <div className="p-3 bg-red-50 text-red-700 text-sm border border-red-200 rounded-md">
+                <p className="font-medium mb-1">Could not add to cart</p>
+                <p>{addError}</p>
+                {addError.toLowerCase().includes('one shop') && (
+                  <Link to="/customer/cart" className="underline mt-1 block">View current cart</Link>
+                )}
+              </div>
+            )}
+            
+            <Button 
+              size="lg" 
+              className="w-full text-base h-12"
+              disabled={!product.is_active || isAdding || added}
+              onClick={handleAddToCart}
+            >
+              {isAdding ? (
+                <span>Adding...</span>
+              ) : added ? (
+                <>
+                  <Check className="mr-2 h-5 w-5" /> Added to Cart
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>
