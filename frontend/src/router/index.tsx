@@ -9,6 +9,9 @@ import { CustomerDashboard } from '@/pages/CustomerDashboard'
 import { ShopDetail } from '@/pages/ShopDetail'
 import { ProductDetail } from '@/pages/ProductDetail'
 import { CustomerCart } from '@/pages/CustomerCart'
+import { CustomerCheckout } from '@/pages/CustomerCheckout'
+import { CustomerPayment } from '@/pages/CustomerPayment'
+import { CustomerOrderConfirmation } from '@/pages/CustomerOrderConfirmation'
 import { ShopDashboard } from '@/pages/ShopDashboard'
 import { RiderDashboard } from '@/pages/RiderDashboard'
 
@@ -36,7 +39,10 @@ export const router = createBrowserRouter([
               { index: true, element: <CustomerDashboard /> },
               { path: 'shops/:id', element: <ShopDetail /> },
               { path: 'products/:id', element: <ProductDetail /> },
-              { path: 'cart', element: <CustomerCart /> }
+              { path: 'cart', element: <CustomerCart /> },
+              { path: 'checkout', element: <CustomerCheckout /> },
+              { path: 'payment/:id', element: <CustomerPayment /> },
+              { path: 'orders/:id/confirmation', element: <CustomerOrderConfirmation /> }
             ]
           }
         ]

@@ -190,14 +190,13 @@ export const CustomerCart = () => {
       </div>
       
       <div className="flex justify-end">
-        {/* Checkout placeholder */}
-        <Button size="lg" className="w-full sm:w-auto" disabled>
+        <Button 
+          size="lg" 
+          className="w-full sm:w-auto" 
+          onClick={() => navigate('/customer/checkout')}
+        >
           Proceed to Checkout <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
-      </div>
-      
-      <div className="text-center text-sm text-gray-500">
-        Checkout functionality is pending Sub-task 18.
       </div>
     </div>
   )

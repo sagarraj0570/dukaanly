@@ -143,6 +143,72 @@ export const handlers = [
       items: [],
       total_amount: 0.00
     })
+  }),
+  http.post('http://localhost:8000/api/v1/orders/checkout', () => {
+    return HttpResponse.json({
+      id: 'order-1',
+      customer_id: 'cust-1',
+      shop_id: 'shop-1',
+      status: 'pending',
+      total_amount: 300.00,
+      items: [
+        {
+          id: 'orderitem-1',
+          product_id: 'prod-1',
+          product_name: 'Test Product Details',
+          unit_price: 150.00,
+          quantity: 2,
+          line_total: 300.00
+        }
+      ],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }, { status: 201 })
+  }),
+  http.get('http://localhost:8000/api/v1/orders/:id', ({ params }) => {
+    return HttpResponse.json({
+      id: params.id,
+      customer_id: 'cust-1',
+      shop_id: 'shop-1',
+      status: 'pending',
+      total_amount: 300.00,
+      items: [
+        {
+          id: 'orderitem-1',
+          product_id: 'prod-1',
+          product_name: 'Test Product Details',
+          unit_price: 150.00,
+          quantity: 2,
+          line_total: 300.00
+        }
+      ],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+  }),
+  http.post('http://localhost:8000/api/v1/orders/:id/payment', ({ params }) => {
+    return HttpResponse.json({
+      payment_id: 'pay_init-1',
+      order_id: params.id,
+      provider: 'razorpay',
+      provider_order_id: 'order_mock_123',
+      amount: 300.00,
+      currency: 'INR',
+      key_id: 'mock_key_id'
+    })
+  }),
+  http.post('http://localhost:8000/api/v1/payments/verify', () => {
+    return HttpResponse.json({
+      id: 'pay-1',
+      order_id: 'order-1',
+      provider: 'razorpay',
+      provider_payment_id: 'pay_mock_123',
+      amount: 300.00,
+      currency: 'INR',
+      status: 'captured',
+      created_at: new Date().toISOString(),
+      paid_at: new Date().toISOString()
+    })
   })
 ]
 
