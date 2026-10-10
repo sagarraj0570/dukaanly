@@ -209,6 +209,118 @@ export const handlers = [
       created_at: new Date().toISOString(),
       paid_at: new Date().toISOString()
     })
+  }),
+  // Rider API Mocks
+  http.get('http://localhost:8000/api/v1/riders/me', () => {
+    return HttpResponse.json({
+      id: 'rider-1',
+      user_id: 'user-rider-1',
+      is_available: true,
+      latitude: 12.971598,
+      longitude: 77.594562,
+      location_updated_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+  }),
+  http.post('http://localhost:8000/api/v1/riders/profile', () => {
+    return HttpResponse.json({
+      id: 'rider-1',
+      user_id: 'user-rider-1',
+      is_available: false,
+      latitude: null,
+      longitude: null,
+      location_updated_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }, { status: 201 })
+  }),
+  http.patch('http://localhost:8000/api/v1/riders/me/availability', async ({ request }) => {
+    const data = await request.json() as { is_available: boolean }
+    return HttpResponse.json({
+      id: 'rider-1',
+      user_id: 'user-rider-1',
+      is_available: data.is_available,
+      latitude: null,
+      longitude: null,
+      location_updated_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+  }),
+  http.patch('http://localhost:8000/api/v1/riders/me/location', async ({ request }) => {
+    const data = await request.json() as { latitude: number, longitude: number }
+    return HttpResponse.json({
+      id: 'rider-1',
+      user_id: 'user-rider-1',
+      is_available: true,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      location_updated_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+  }),
+  http.get('http://localhost:8000/api/v1/riders/me/deliveries', () => {
+    return HttpResponse.json([
+      {
+        id: 'delivery-1',
+        order_id: 'order-1',
+        rider_id: 'rider-1',
+        status: 'assigned',
+        destination_latitude: 12.972,
+        destination_longitude: 77.595,
+        assigned_at: new Date().toISOString(),
+        picked_up_at: null,
+        delivered_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 'delivery-2',
+        order_id: 'order-2',
+        rider_id: 'rider-1',
+        status: 'delivered',
+        destination_latitude: 12.972,
+        destination_longitude: 77.595,
+        assigned_at: new Date().toISOString(),
+        picked_up_at: new Date().toISOString(),
+        delivered_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ])
+  }),
+  http.get('http://localhost:8000/api/v1/deliveries/:id', ({ params }) => {
+    return HttpResponse.json({
+      id: params.id,
+      order_id: 'order-1',
+      rider_id: 'rider-1',
+      status: 'out_for_delivery',
+      destination_latitude: 12.972,
+      destination_longitude: 77.595,
+      assigned_at: new Date().toISOString(),
+      picked_up_at: new Date().toISOString(),
+      delivered_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+  }),
+  http.patch('http://localhost:8000/api/v1/deliveries/:id/status', async ({ params, request }) => {
+    const data = await request.json() as { status: string }
+    return HttpResponse.json({
+      id: params.id,
+      order_id: 'order-1',
+      rider_id: 'rider-1',
+      status: data.status,
+      destination_latitude: 12.972,
+      destination_longitude: 77.595,
+      assigned_at: new Date().toISOString(),
+      picked_up_at: new Date().toISOString(),
+      delivered_at: data.status === 'delivered' ? new Date().toISOString() : null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
   })
 ]
 

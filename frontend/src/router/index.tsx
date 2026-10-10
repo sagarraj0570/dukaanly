@@ -14,6 +14,7 @@ import { CustomerPayment } from '@/pages/CustomerPayment'
 import { CustomerOrderConfirmation } from '@/pages/CustomerOrderConfirmation'
 import { ShopDashboard } from '@/pages/ShopDashboard'
 import { RiderDashboard } from '@/pages/RiderDashboard'
+import { RiderDeliveryDetail } from '@/pages/RiderDeliveryDetail'
 
 export const router = createBrowserRouter([
   {
@@ -68,7 +69,8 @@ export const router = createBrowserRouter([
           {
             element: <RiderLayout />,
             children: [
-              { index: true, element: <RiderDashboard /> }
+              { index: true, element: <RiderDashboard /> },
+              { path: 'deliveries/:id', element: <RiderDeliveryDetail /> }
             ]
           }
         ]
