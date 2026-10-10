@@ -28,6 +28,19 @@ export interface CheckoutPayload {
   idempotency_key: string
 }
 
+export interface OrderListResponse {
+  items: Order[]
+  total: number
+  page: number
+  size: number
+}
+
+// Fetch multiple orders
+export const fetchOrders = async (page: number = 1, size: number = 20): Promise<OrderListResponse> => {
+  const { data } = await api.get('/orders', { params: { page, size } })
+  return data
+}
+
 // Fetch single order
 export const fetchOrder = async (orderId: string): Promise<Order> => {
   const { data } = await api.get(`/orders/${orderId}`)
@@ -46,6 +59,13 @@ export const useOrder = (orderId: string | undefined) => {
     queryFn: () => fetchOrder(orderId!),
     enabled: !!orderId,
     staleTime: 1000 * 60, // 1 minute
+  })
+}
+
+export const useOrders = (page: number = 1, size: number = 20) => {
+  return useQuery({
+    queryKey: ['orders', page, size],
+    queryFn: () => fetchOrders(page, size),
   })
 }
 

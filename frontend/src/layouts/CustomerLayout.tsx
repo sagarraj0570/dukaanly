@@ -35,7 +35,10 @@ export const CustomerLayout = () => {
             <Store className="h-6 w-6 text-primary" />
             <span className="font-bold text-xl">Dukaanly</span>
           </div>
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center gap-2 sm:gap-4">
+            <Button variant="ghost" size="sm" onClick={() => window.location.href = '/customer/orders'}>
+              Orders
+            </Button>
             <CartButton />
             <div className="flex items-center gap-2">
               <UserIcon className="h-5 w-5 text-gray-500" />

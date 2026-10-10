@@ -165,6 +165,34 @@ export const handlers = [
       updated_at: new Date().toISOString()
     }, { status: 201 })
   }),
+  http.get('http://localhost:8000/api/v1/orders', () => {
+    return HttpResponse.json({
+      items: [
+        {
+          id: 'order-1',
+          customer_id: 'cust-1',
+          shop_id: 'shop-1',
+          status: 'pending',
+          total_amount: 300.00,
+          items: [
+            {
+              id: 'orderitem-1',
+              product_id: 'prod-1',
+              product_name: 'Test Product Details',
+              unit_price: 150.00,
+              quantity: 2,
+              line_total: 300.00
+            }
+          ],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ],
+      total: 1,
+      page: 1,
+      size: 20
+    })
+  }),
   http.get('http://localhost:8000/api/v1/orders/:id', ({ params }) => {
     return HttpResponse.json({
       id: params.id,

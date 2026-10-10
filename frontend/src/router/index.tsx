@@ -12,6 +12,8 @@ import { CustomerCart } from '@/pages/CustomerCart'
 import { CustomerCheckout } from '@/pages/CustomerCheckout'
 import { CustomerPayment } from '@/pages/CustomerPayment'
 import { CustomerOrderConfirmation } from '@/pages/CustomerOrderConfirmation'
+import { CustomerOrderHistory } from '@/pages/CustomerOrderHistory'
+import { CustomerOrderDetail } from '@/pages/CustomerOrderDetail'
 import { ShopDashboard } from '@/pages/ShopDashboard'
 import { RiderDashboard } from '@/pages/RiderDashboard'
 import { RiderDeliveryDetail } from '@/pages/RiderDeliveryDetail'
@@ -43,6 +45,8 @@ export const router = createBrowserRouter([
               { path: 'cart', element: <CustomerCart /> },
               { path: 'checkout', element: <CustomerCheckout /> },
               { path: 'payment/:id', element: <CustomerPayment /> },
+              { path: 'orders', element: <CustomerOrderHistory /> },
+              { path: 'orders/:id', element: <CustomerOrderDetail /> },
               { path: 'orders/:id/confirmation', element: <CustomerOrderConfirmation /> }
             ]
           }
