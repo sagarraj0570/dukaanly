@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # Payment Settings
     PAYMENT_PROVIDER: str = "razorpay"
-    ALLOW_MOCK_PAYMENTS: bool = True
+    ALLOW_MOCK_PAYMENTS: bool = False
     RAZORPAY_KEY_ID: str | None = None
     RAZORPAY_KEY_SECRET: str | None = None
     RAZORPAY_WEBHOOK_SECRET: str | None = None
@@ -56,12 +56,18 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_env(self) -> "Settings":
-        if self.APP_ENV == "production":
+        if self.APP_ENV == "development":
+            if "ALLOW_MOCK_PAYMENTS" not in self.model_fields_set:
+                self.ALLOW_MOCK_PAYMENTS = True
+        elif self.APP_ENV == "production":
             if self.JWT_SECRET_KEY == "supersecret_for_development_only" or len(self.JWT_SECRET_KEY) < 32:
                 raise ValueError("In production, JWT_SECRET_KEY must be a strong random secret of at least 32 characters.")
             if self.DEBUG:
                 raise ValueError("DEBUG mode must be False in production.")
+            if self.ALLOW_MOCK_PAYMENTS:
+                raise ValueError("ALLOW_MOCK_PAYMENTS cannot be enabled in production. Mock payments are strictly forbidden in production.")
         return self
+
 
     model_config = ConfigDict(env_file=str(ROOT_DIR / ".env"), extra="ignore")
 
