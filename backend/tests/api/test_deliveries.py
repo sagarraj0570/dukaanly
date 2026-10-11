@@ -65,9 +65,13 @@ async def test_delivery_lifecycle(async_client: AsyncClient):
     res_pick = await async_client.patch(f"/api/v1/deliveries/{delivery_id}/status", json={"status": "picked_up"}, headers={"Authorization": f"Bearer {tokens['rider']}"})
     assert res_pick.status_code == 200
     
-    # 4. Check Order Sync
+    # 4. Check Order Sync & Delivery Summary
     res_order = await async_client.get(f"/api/v1/orders/{order_id}", headers={"Authorization": f"Bearer {tokens['customer']}"})
-    assert res_order.json()["status"] == "ready_for_delivery"
+    order_data = res_order.json()
+    assert order_data["status"] == "ready_for_delivery"
+    assert order_data["delivery"] is not None
+    assert order_data["delivery"]["id"] == delivery_id
+    assert order_data["delivery"]["status"] == "picked_up"
     
     res_out = await async_client.patch(f"/api/v1/deliveries/{delivery_id}/status", json={"status": "out_for_delivery"}, headers={"Authorization": f"Bearer {tokens['rider']}"})
     assert res_out.status_code == 200
@@ -108,3 +112,54 @@ async def test_rider_workload_concurrency(async_client: AsyncClient):
     status_codes = [r1.status_code, r2.status_code]
     assert 200 in status_codes
     assert 409 in status_codes
+
+async def test_customer_order_delivery_tracking_contract(async_client: AsyncClient):
+    from app.db.session import engine
+    tokens, order_id, rider1_id, shop_id = await setup_delivery_test_data(async_client, engine)
+
+    # 1. Before delivery is created, order returns delivery: None
+    res_before = await async_client.get(f"/api/v1/orders/{order_id}", headers={"Authorization": f"Bearer {tokens['customer']}"})
+    assert res_before.status_code == 200
+    assert res_before.json()["delivery"] is None
+
+    # 2. Shop owner creates delivery
+    res_create = await async_client.post("/api/v1/deliveries", json={"order_id": order_id}, headers={"Authorization": f"Bearer {tokens['shop_owner']}"})
+    assert res_create.status_code == 201
+    delivery_id = res_create.json()["id"]
+
+    # 3. Customer retrieves order, now sees delivery summary with pending status
+    res_after = await async_client.get(f"/api/v1/orders/{order_id}", headers={"Authorization": f"Bearer {tokens['customer']}"})
+    assert res_after.status_code == 200
+    deliv_summary = res_after.json()["delivery"]
+    assert deliv_summary is not None
+    assert deliv_summary["id"] == delivery_id
+    assert deliv_summary["status"] == "pending"
+    assert deliv_summary["rider_id"] is None
+
+    # 4. Assign rider -> Customer sees assigned status and rider_id
+    await async_client.post(f"/api/v1/deliveries/{delivery_id}/assign", json={"rider_id": rider1_id}, headers={"Authorization": f"Bearer {tokens['shop_owner']}"})
+    res_assigned = await async_client.get(f"/api/v1/orders/{order_id}", headers={"Authorization": f"Bearer {tokens['customer']}"})
+    deliv_assigned = res_assigned.json()["delivery"]
+    assert deliv_assigned["status"] == "assigned"
+    assert deliv_assigned["rider_id"] == rider1_id
+
+    # 5. Customer list endpoint also includes delivery summary
+    res_list = await async_client.get("/api/v1/orders", headers={"Authorization": f"Bearer {tokens['customer']}"})
+    assert res_list.status_code == 200
+    orders_items = res_list.json()["items"]
+    matched = [o for o in orders_items if o["id"] == order_id]
+    assert len(matched) == 1
+    assert matched[0]["delivery"]["id"] == delivery_id
+
+    # 6. Unauthorized / different customer cannot view this order or delivery
+    other_cust_email = f"other_{uuid.uuid4()}@example.com"
+    await async_client.post("/api/v1/auth/register", json={"name": "Other", "email": other_cust_email, "password": "PassWord123"})
+    other_token = (await async_client.post("/api/v1/auth/login", json={"email": other_cust_email, "password": "PassWord123"})).json()["access_token"]
+    
+    # Cross-customer access to order is 404 (isolation)
+    res_unauth_order = await async_client.get(f"/api/v1/orders/{order_id}", headers={"Authorization": f"Bearer {other_token}"})
+    assert res_unauth_order.status_code == 404
+
+    # Cross-customer access to delivery directly is 403 (forbidden)
+    res_unauth_deliv = await async_client.get(f"/api/v1/deliveries/{delivery_id}", headers={"Authorization": f"Bearer {other_token}"})
+    assert res_unauth_deliv.status_code == 403

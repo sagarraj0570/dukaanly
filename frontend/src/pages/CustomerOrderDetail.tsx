@@ -2,7 +2,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useOrder } from '@/hooks/useOrders'
 import { Button } from '@/components/ui/button'
 import { ErrorState } from '@/components/ErrorState'
-import { ArrowLeft, Package, AlertCircle } from 'lucide-react'
+import { CustomerDeliveryTracker } from '@/components/CustomerDeliveryTracker'
+import { ArrowLeft } from 'lucide-react'
 
 export const CustomerOrderDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -83,26 +84,11 @@ export const CustomerOrderDetail = () => {
           </div>
 
           {/* Delivery Tracking Section */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Delivery Tracking</h2>
-            
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-semibold mb-1">Tracking Unavailable</p>
-                <p className="text-sm">
-                  Live delivery tracking cannot be initialized because the backend API does not currently expose the <code>delivery_id</code> to the customer via the Order endpoints. This missing contract prevents fetching delivery status or subscribing to real-time location updates.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-4 bg-gray-50 border rounded-lg flex items-center justify-center py-8">
-              <div className="text-center text-gray-400">
-                <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                <p>Waiting for backend contract implementation...</p>
-              </div>
-            </div>
-          </div>
+          <CustomerDeliveryTracker 
+            delivery={order.delivery} 
+            orderStatus={order.status}
+            onRefreshOrder={() => refetch()}
+          />
 
         </div>
       </div>

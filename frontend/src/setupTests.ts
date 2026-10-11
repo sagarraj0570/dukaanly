@@ -211,7 +211,15 @@ export const handlers = [
         }
       ],
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      delivery: {
+        id: 'delivery-1',
+        status: 'assigned',
+        rider_id: 'rider-1',
+        assigned_at: new Date().toISOString(),
+        picked_up_at: null,
+        delivered_at: null
+      }
     })
   }),
   http.post('http://localhost:8000/api/v1/orders/:id/payment', ({ params }) => {

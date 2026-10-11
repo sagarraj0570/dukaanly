@@ -37,6 +37,7 @@ class Order(Base):
     customer = relationship("User")
     shop = relationship("Shop")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    delivery = relationship("Delivery", back_populates="order", uselist=False, lazy="selectin")
     
     __table_args__ = (
         CheckConstraint("total_amount >= 0", name="chk_order_total_positive"),

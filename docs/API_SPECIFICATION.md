@@ -35,8 +35,8 @@
 
 ### Orders & Checkout
 - `POST /orders/checkout` - Checkout the current cart and place a new order. Requires `idempotency_key` payload.
-- `GET /orders` - List customer's orders.
-- `GET /orders/{order_id}` - Get customer order details.
+- `GET /orders` - List customer's orders. Includes optional `delivery` summary (`id`, `status`, `rider_id`, `assigned_at`, `picked_up_at`, `delivered_at`).
+- `GET /orders/{order_id}` - Get customer order details. Includes optional `delivery` summary (`id`, `status`, `rider_id`, `assigned_at`, `picked_up_at`, `delivered_at`) when a delivery exists, or `null` if unassigned.
 - `GET /shops/{shop_id}/orders` - List shop orders (Shop Owner).
 - `PATCH /shops/{shop_id}/orders/{order_id}/status` - Update order state (Shop Owner).
 

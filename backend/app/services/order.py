@@ -98,7 +98,7 @@ async def checkout(db: AsyncSession, customer: User, idempotency_key: str) -> Or
         
         # 8. Commit Transaction
         await db.commit()
-        await db.refresh(new_order, ["items"])
+        await db.refresh(new_order, ["items", "delivery"])
         return new_order
         
     except HTTPException as e:
@@ -112,7 +112,7 @@ async def checkout(db: AsyncSession, customer: User, idempotency_key: str) -> Or
         )
 
 async def get_customer_orders(db: AsyncSession, customer: User, page: int = 1, size: int = 20):
-    stmt = select(Order).options(selectinload(Order.items)).where(Order.customer_id == customer.id).order_by(Order.created_at.desc()).offset((page - 1) * size).limit(size)
+    stmt = select(Order).options(selectinload(Order.items), selectinload(Order.delivery)).where(Order.customer_id == customer.id).order_by(Order.created_at.desc()).offset((page - 1) * size).limit(size)
     orders = (await db.execute(stmt)).scalars().all()
     
     count_stmt = select(func.count(Order.id)).where(Order.customer_id == customer.id)
@@ -121,7 +121,7 @@ async def get_customer_orders(db: AsyncSession, customer: User, page: int = 1, s
     return orders, total
 
 async def get_customer_order(db: AsyncSession, customer: User, order_id: uuid.UUID):
-    stmt = select(Order).options(selectinload(Order.items)).where(Order.id == order_id, Order.customer_id == customer.id)
+    stmt = select(Order).options(selectinload(Order.items), selectinload(Order.delivery)).where(Order.id == order_id, Order.customer_id == customer.id)
     order = (await db.execute(stmt)).scalar_one_or_none()
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
@@ -133,7 +133,7 @@ async def get_shop_orders(db: AsyncSession, shop_id: uuid.UUID, owner: User, pag
     if shop.owner_id != owner.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
     
-    stmt = select(Order).options(selectinload(Order.items)).where(Order.shop_id == shop_id).order_by(Order.created_at.desc()).offset((page - 1) * size).limit(size)
+    stmt = select(Order).options(selectinload(Order.items), selectinload(Order.delivery)).where(Order.shop_id == shop_id).order_by(Order.created_at.desc()).offset((page - 1) * size).limit(size)
     orders = (await db.execute(stmt)).scalars().all()
     
     count_stmt = select(func.count(Order.id)).where(Order.shop_id == shop_id)
@@ -147,7 +147,7 @@ async def update_order_status(db: AsyncSession, shop_id: uuid.UUID, order_id: uu
     if shop.owner_id != owner.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
     
-    stmt = select(Order).options(selectinload(Order.items)).where(Order.id == order_id, Order.shop_id == shop_id)
+    stmt = select(Order).options(selectinload(Order.items), selectinload(Order.delivery)).where(Order.id == order_id, Order.shop_id == shop_id)
     order = (await db.execute(stmt)).scalar_one_or_none()
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
@@ -171,5 +171,5 @@ async def update_order_status(db: AsyncSession, shop_id: uuid.UUID, order_id: uu
         
     order.status = new_status
     await db.commit()
-    await db.refresh(order)
+    await db.refresh(order, ["items", "delivery"])
     return order

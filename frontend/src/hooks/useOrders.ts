@@ -13,6 +13,17 @@ export interface OrderItem {
 
 export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'out_for_delivery' | 'delivered' | 'cancelled'
 
+export type DeliveryStatus = 'pending' | 'assigned' | 'picked_up' | 'out_for_delivery' | 'delivered' | 'cancelled'
+
+export interface OrderDeliverySummary {
+  id: string
+  status: DeliveryStatus
+  rider_id: string | null
+  assigned_at: string | null
+  picked_up_at: string | null
+  delivered_at: string | null
+}
+
 export interface Order {
   id: string
   customer_id: string
@@ -22,6 +33,7 @@ export interface Order {
   items: OrderItem[]
   created_at: string
   updated_at: string
+  delivery?: OrderDeliverySummary | null
 }
 
 export interface CheckoutPayload {
