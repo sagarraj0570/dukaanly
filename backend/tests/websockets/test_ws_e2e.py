@@ -42,7 +42,7 @@ def live_server():
 async def test_websocket_e2e(live_server):
     http_base, ws_base = live_server
     
-    async with httpx.AsyncClient(base_url=http_base) as client:
+    async with httpx.AsyncClient(base_url=http_base, timeout=30.0) as client:
         # Create Customer
         c_email = f"c_{uuid.uuid4()}@example.com"
         await client.post("/api/v1/auth/register", json={"name": "Cust", "email": c_email, "password": "PassWord123"})

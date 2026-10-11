@@ -98,8 +98,8 @@ async def checkout(db: AsyncSession, customer: User, idempotency_key: str) -> Or
         
         # 8. Commit Transaction
         await db.commit()
-        await db.refresh(new_order, ["items", "delivery"])
-        return new_order
+        stmt = select(Order).options(selectinload(Order.items), selectinload(Order.delivery)).where(Order.id == new_order.id)
+        return (await db.execute(stmt)).scalar_one()
         
     except HTTPException as e:
         await db.rollback()
@@ -171,5 +171,5 @@ async def update_order_status(db: AsyncSession, shop_id: uuid.UUID, order_id: uu
         
     order.status = new_status
     await db.commit()
-    await db.refresh(order, ["items", "delivery"])
-    return order
+    stmt = select(Order).options(selectinload(Order.items), selectinload(Order.delivery)).where(Order.id == order_id)
+    return (await db.execute(stmt)).scalar_one()
