@@ -5,6 +5,7 @@ services:
   - type: web
     name: dukaanly-api
     runtime: docker
+    dockerContext: backend
     dockerfilePath: backend/Dockerfile
     plan: starter
     healthCheckPath: /api/v1/health/live
@@ -42,6 +43,7 @@ services:
   - type: worker
     name: dukaanly-worker
     runtime: docker
+    dockerContext: backend
     dockerfilePath: backend/Dockerfile
     dockerCommand: celery -A app.core.celery_app.celery_app worker --loglevel=info
     plan: starter
