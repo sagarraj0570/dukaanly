@@ -1,20 +1,20 @@
 # Dukaanly — Production Deployment Plan & Environment Readiness
 
-## 1. Hosting Architecture Overview (Cloud PaaS: Render / Railway)
+## 1. Hosting Architecture Overview (Cloud PaaS: Render)
 
-Dukaanly is deployed as a modular monolith composed of 5 coordinated services:
+Dukaanly is deployed as a modular monolith composed of 5 coordinated services managed through [`render.yaml`](../render.yaml):
 
 ```mermaid
 flowchart TD
     Client[End User Browser / Mobile]
 
     subgraph CDN[Edge / Static Hosting]
-        Frontend["dukaanly-frontend (React SPA on CDN)<br/>Auto-TLS: https://dukaanly.onrender.com"]
+        Frontend["dukaanly-frontend (React SPA on CDN)<br/>Default Hostname: https://dukaanly-frontend.onrender.com"]
     end
 
     subgraph Compute[Containerized Application Tier]
-        API["dukaanly-api (FastAPI + WebSockets)<br/>Auto-TLS & WSS: https://api.dukaanly.onrender.com"]
-        Worker["dukaanly-worker (Celery Background Tasks)<br/>Internal Process"]
+        API["dukaanly-api (FastAPI + WebSockets)<br/>Default Hostname: https://dukaanly-api.onrender.com"]
+        Worker["dukaanly-worker (Celery Background Tasks)<br/>Internal Process (Private Network)"]
     end
 
     subgraph DataTier[Private Managed Data Tier]
@@ -32,101 +32,152 @@ flowchart TD
 
 ---
 
-## 2. Service Definitions
+## 2. Service Definitions & Assigned Hostnames
 
-| Service | Type | Runtime | Build / Start Command | Health Check |
-|---|---|---|---|---|
-| **`dukaanly-frontend`** | Static Site | Node.js 20 | `npm ci && npm run build` (publish: `dist`) | SPA rewrite `/* -> /index.html` |
-| **`dukaanly-api`** | Web Service | Docker (`backend/Dockerfile`) | `uvicorn app.main:app --host 0.0.0.0 --port 8000` | `GET /api/v1/health/live` |
-| **`dukaanly-worker`** | Background Worker | Docker (`backend/Dockerfile`) | `celery -A app.core.celery_app.celery_app worker --loglevel=info` | Celery ping / process supervisor |
-| **`dukaanly-postgres`**| Managed Database | PostgreSQL 16 | PostGIS extension auto-provisioned | Managed DB health |
-| **`dukaanly-redis`**   | Managed Key-Value | Redis 7 | Managed Redis cluster | Managed Redis ping |
+| Service | Type | Runtime | Build / Start Command | Assigned Hostname / Ingress | Health Check |
+|---|---|---|---|---|---|
+| **`dukaanly-frontend`** | Static Site | Node.js 20 | `npm ci && npm run build` (publish: `dist`) | `https://dukaanly-frontend.onrender.com` | SPA rewrite `/* -> /index.html` |
+| **`dukaanly-api`** | Web Service | Docker (`backend/Dockerfile`) | `uvicorn app.main:app --host 0.0.0.0 --port 8000` | `https://dukaanly-api.onrender.com` | `GET /api/v1/health/live` |
+| **`dukaanly-worker`** | Background Worker | Docker (`backend/Dockerfile`) | `celery -A app.core.celery_app.celery_app worker --loglevel=info` | None (Private worker process) | Celery ping / process supervisor |
+| **`dukaanly-postgres`**| Managed Database | PostgreSQL 16 | PostGIS extension auto-provisioned via pre-deploy | Private network only | Managed DB health |
+| **`dukaanly-redis`**   | Managed Key-Value | Redis 7 | Managed Redis cluster | Private network only | Managed Redis ping |
+
+> [!NOTE]
+> If custom apex or subdomains are configured on Render (e.g. `dukaanly.com` and `api.dukaanly.com`), Render's `fromService: property: url` continues to dynamically resolve the canonical service URL, keeping `ALLOWED_ORIGINS` and `VITE_API_URL` synchronized without manual configuration changes.
 
 ---
 
-## 3. Environment Variables & Secret Management
+## 3. Environment Variables & Secret Sharing via `envVarGroups`
 
-Secrets must be injected exclusively through the cloud platform's dashboard or environment configuration, **never committed to source control**.
+To guarantee that both the API and worker receive **the identical JWT secret** without exposing credentials in git or build logs, the Render blueprint defines an environment variable group (`dukaanly-shared-config`) with `generateValue: true`:
 
-### Backend API & Worker Configuration
-| Variable | Value / Source | Purpose |
+### Root-Level Shared Environment Group (`dukaanly-shared-config`)
+| Variable | Value / Generation | Purpose |
 |---|---|---|
-| `APP_ENV` | `production` | Enforces production security validations |
-| `DEBUG` | `false` | Disables interactive tracebacks and Swagger UI docs |
+| `APP_ENV` | `production` | Enforces production security validations across all services |
+| `DEBUG` | `false` | Disables tracebacks, mock data fallbacks, and interactive docs |
 | `ALLOW_MOCK_PAYMENTS` | `false` | Strictly disables mock payment processing in production |
-| `JWT_SECRET_KEY` | `generateValue` (>= 32 chars) | Strong cryptographically random token signing secret |
-| `JWT_ALGORITHM` | `HS256` | JWT signing algorithm |
-| `DATABASE_URL` | From `dukaanly-postgres` | PostgreSQL connection string (asyncpg driver auto-mapped) |
-| `REDIS_URL` | From `dukaanly-redis` | Redis connection URL for Pub/Sub and Celery broker |
-| `ALLOWED_ORIGINS` | `https://dukaanly.onrender.com` | Strict CORS policy allowing only production frontend origin |
+| `JWT_ALGORITHM` | `HS256` | Standard HMAC-SHA256 signing algorithm |
+| `JWT_SECRET_KEY` | `generateValue: true` | Render generates a cryptographically random 256-bit secret shared identically across API and worker |
 
-### Frontend Static Site Configuration
-| Variable | Value / Source | Purpose |
-|---|---|---|
-| `VITE_API_URL` | `https://api.dukaanly.onrender.com/api/v1` | Production API endpoint |
-| `VITE_WS_URL` | `wss://api.dukaanly.onrender.com/api/v1` | Derived automatically by `getDeliveryWsUrl` |
-
----
-
-## 4. Database Migration & Deployment Phase
-
-Schema migrations are executed via a **pre-deploy release phase** before incoming user traffic routes to new application containers:
-
-1. **Pre-Deploy Command**:
-   ```bash
-   alembic -c alembic.ini upgrade head
-   ```
-2. **Safety Guarantees**:
-   - Application startup commands (`uvicorn`, `celery`) do not run migrations or create tables implicitly.
-   - If a migration fails, the deployment halts immediately; existing running containers remain active and untouched.
-   - Zero downtime: Traffic switches to newly provisioned containers only after both the migration phase and container health checks pass.
+### Service-Specific Injected Variables
+- **`dukaanly-api`**:
+  - `fromGroup: dukaanly-shared-config`
+  - `DATABASE_URL`: `fromDatabase: dukaanly-postgres` (connectionString)
+  - `REDIS_URL`: `fromService: dukaanly-redis` (connectionString)
+  - `ALLOWED_ORIGINS`: `fromService: dukaanly-frontend` (property: url $\to$ `https://dukaanly-frontend.onrender.com`)
+- **`dukaanly-worker`**:
+  - `fromGroup: dukaanly-shared-config`
+  - `DATABASE_URL`: `fromDatabase: dukaanly-postgres` (connectionString)
+  - `REDIS_URL`: `fromService: dukaanly-redis` (connectionString)
+- **`dukaanly-frontend`**:
+  - `VITE_API_URL`: `fromService: dukaanly-api` (property: url $\to$ `https://dukaanly-api.onrender.com`)
+  - `VITE_WS_URL`: `""` (dynamically derived by `getDeliveryWsUrl`)
 
 ---
 
-## 5. Domain, TLS & WebSocket (WSS) Configuration
+## 4. Automated PostGIS & Database Migration Release Phase
+
+Render runs an ephemeral **pre-deploy release phase** before switching customer traffic to new containers:
+
+```bash
+python -m app.db.init_predeploy && alembic -c alembic.ini upgrade head
+```
+
+### Pre-Deploy Execution Sequence:
+1. **Connectivity Check**: Establishes async connection to PostgreSQL via `DATABASE_URL`.
+2. **PostGIS Availability Audit**: Queries `pg_available_extensions` to confirm that `postgis` binary is present in the PostgreSQL 16 engine. If missing, execution halts with exit code 1 to protect the database from broken partial migrations.
+3. **Automated Extension Provisioning**: Executes `CREATE EXTENSION IF NOT EXISTS postgis;` idempotently.
+4. **Operational Readiness Assert**: Executes `SELECT PostGIS_Version();` and logs the verified PostGIS version (e.g. `>= 3.4`).
+5. **Schema Migration**: Executes `alembic -c alembic.ini upgrade head` to apply all pending schema revisions. The initial migration `4cf0f0146f95` also contains an idempotent `op.execute("CREATE EXTENSION IF NOT EXISTS postgis;")` safety net.
+
+### Safety Guarantees:
+- Application startup commands (`uvicorn`, `celery`) **never** execute migrations or table mutations.
+- If a migration or PostGIS check fails, the deployment halts immediately; existing running containers remain active and customer traffic is untouched.
+- Zero downtime: Traffic switches to newly provisioned containers only after both the release phase and container health checks pass.
+
+---
+
+## 5. Domain, TLS, CORS & WebSocket Normalization
 
 1. **Automatic TLS 1.3**:
-   - The PaaS automatically provisions and renews Let's Encrypt SSL/TLS certificates.
-   - Plain HTTP requests are redirected to HTTPS automatically with HSTS enabled.
-2. **WebSocket WSS Termination**:
-   - The edge reverse proxy terminates TLS and forwards WebSocket upgrades (`Upgrade: websocket`, `Connection: Upgrade`).
-   - The frontend's `getDeliveryWsUrl` dynamically inspects `window.location.protocol === 'https:'` and connects via `wss://`.
+   - Render automatically provisions and renews Let's Encrypt certificates for all `.onrender.com` and custom domains.
+   - Plain HTTP requests are 301 redirected to HTTPS with HSTS enabled.
+2. **CORS Alignment**:
+   - `ALLOWED_ORIGINS` is injected dynamically from `dukaanly-frontend`'s assigned URL (`https://dukaanly-frontend.onrender.com`).
+   - Browser cross-origin requests from the React SPA are authorized with full credential support.
+3. **URL & WebSocket Normalization**:
+   - The frontend Axios client normalizes `VITE_API_URL` to ensure `/api/v1` is present regardless of whether the injected URL contains a trailing path.
+   - `getDeliveryWsUrl` automatically converts `https:` $\to$ `wss:` and appends `/api/v1/ws/deliveries/{id}`, guaranteeing zero WebSocket handshake mismatches behind PaaS TLS edge proxies.
 
 ---
 
-## 6. Deployment Verification & Smoke Test Runbook
+## 6. Live Deployment Verification Runbook
 
-Immediately following production deployment, execute the following smoke test sequence:
+Following initial production deployment, run the verification sequence:
 
-1. **Liveness & Readiness Probes**:
-   - `GET https://api.dukaanly.onrender.com/api/v1/health/live` $\to$ `200 OK` (`{"status": "alive"}`)
-   - `GET https://api.dukaanly.onrender.com/api/v1/health/ready` $\to$ `200 OK` (`{"status": "ready", "database": "connected", "redis": "connected"}`)
-2. **PostGIS Verification**:
-   - Connect via `psql` to production database and run:
-     ```sql
-     SELECT PostGIS_Version();
-     ```
-   - Verify extension version is `>= 3.4`.
-3. **End-to-End User Journey Smoke Test**:
-   - Register a customer account (`POST /api/v1/auth/register`).
-   - Discover active shops with PostGIS spatial query (`GET /api/v1/shops/nearby?lat=...&lng=...`).
-   - Add product to cart (`POST /api/v1/cart/items`).
-   - Checkout order (`POST /api/v1/orders/checkout`).
-   - Verify payment endpoint fails closed (`POST /api/v1/payments/mock-process` $\to$ `403 Forbidden`).
-   - Connect to delivery WebSocket (`wss://api.dukaanly.onrender.com/api/v1/ws/deliveries/{id}`).
-   - Verify connection snapshot event (`connection.ready`).
+### Step 1: Health & Dependency Readiness Probes
+Inspect HTTP status and complete JSON response bodies:
+```bash
+# 1. Liveness Probe (process is running)
+curl -s -i https://dukaanly-api.onrender.com/api/v1/health/live
+# Expected: HTTP/2 200 OK
+# Body: {"status":"alive"}
+
+# 2. Readiness Probe (database & redis connectivity)
+curl -s -i https://dukaanly-api.onrender.com/api/v1/health/ready
+# Expected: HTTP/2 200 OK
+# Body: {"status":"ready","database":"connected","redis":"connected"}
+```
+> [!IMPORTANT]
+> The readiness probe executes `SELECT 1` on PostgreSQL and a `PING` on Redis. Both subsystems must report `"connected"`.
+
+### Step 2: PostGIS Verification via API
+Verify spatial queries execute on the database:
+```bash
+curl -s "https://dukaanly-api.onrender.com/api/v1/shops/nearby?lat=12.9716&lng=77.5946&radius_km=10"
+# Expected: HTTP/2 200 OK with shop array (spatial ST_DWithin query succeeded)
+```
+
+### Step 3: Production Security Guardrails
+Verify mock payments fail closed:
+```bash
+curl -s -i -X POST https://dukaanly-api.onrender.com/api/v1/payments/mock-process \
+  -H "Content-Type: application/json" \
+  -d '{"order_id": "00000000-0000-0000-0000-000000000000"}'
+# Expected: HTTP/2 403 Forbidden or 401 Unauthorized (never 200 OK in production)
+```
+
+### Step 4: Real-Time WebSocket Delivery Stream
+Connect to `wss://dukaanly-api.onrender.com/api/v1/ws/deliveries/{delivery_id}?token={jwt_token}` and verify receipt of initial `connection.ready` event.
 
 ---
 
-## 7. Rollback & Disaster Recovery Procedures
+## 7. Decoupled Rollback & Disaster Recovery Procedures
 
-1. **Application Code Rollback**:
-   - The PaaS provides 1-click instant rollback to the previous successful deploy artifact.
-2. **Database Schema Rollback**:
-   - If an applied migration causes application errors:
+Application code rollback and database recovery are strictly separated operations:
+
+### A. Application Code Rollback (Zero Data Impact)
+- If a regression is discovered in the API, worker, or frontend code that **does not involve a schema change**:
+  1. Open Render Dashboard $\to$ Service (`dukaanly-api`, `dukaanly-worker`, or `dukaanly-frontend`).
+  2. Select **Deploys** $\to$ Locate the previous known-good deployment artifact.
+  3. Click **Rollback to this deploy**.
+  4. Render immediately shifts traffic back to the previous immutable container image.
+
+### B. Database Schema Migration Rollback (Controlled Schema Reversal)
+- If a newly applied migration caused application errors:
+  ```bash
+  # Target the specific down-revision
+  alembic -c alembic.ini downgrade -1
+  ```
+  > [!WARNING]
+  > Never roll back container code while an incompatible schema migration is active. Always align the database schema before or synchronously with container rollback.
+
+### C. Disaster Recovery & Point-In-Time Restoration (Disaster Only)
+- In the event of catastrophic data corruption or accidental drop:
+  1. Managed daily snapshots are maintained by Render PostgreSQL.
+  2. Provision a new target database or restore the backup archive via `pg_restore`:
      ```bash
-     alembic -c alembic.ini downgrade -1
+     pg_restore --clean --if-exists -d dukaanly_recovery_db dukaanly_backup.dump
      ```
-3. **Database Recovery (Point-In-Time-Recovery / Snapshots)**:
-   - Automated daily snapshots are retained by the managed database.
-   - In the event of catastrophic data corruption, restore from the latest snapshot or point-in-time log.
+  3. Validate PostGIS extensions and data integrity before updating `DATABASE_URL`.

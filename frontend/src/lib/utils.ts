@@ -16,7 +16,10 @@ export const getDeliveryWsUrl = (deliveryId: string, token: string | null): stri
   if (import.meta.env.VITE_WS_URL) {
     wsBase = import.meta.env.VITE_WS_URL
   } else if (import.meta.env.VITE_API_URL) {
-    const apiUrl = import.meta.env.VITE_API_URL
+    let apiUrl = import.meta.env.VITE_API_URL.replace(/\/+$/, '')
+    if (!apiUrl.endsWith('/api/v1')) {
+      apiUrl = `${apiUrl}/api/v1`
+    }
     if (apiUrl.startsWith('https://')) {
       wsBase = apiUrl.replace(/^https:\/\//, 'wss://')
     } else if (apiUrl.startsWith('http://')) {

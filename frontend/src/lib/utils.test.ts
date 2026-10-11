@@ -41,6 +41,12 @@ describe("getDeliveryWsUrl", () => {
     expect(url).toBe("ws://localhost:8000/api/v1/ws/deliveries/del-123");
   });
 
+  it("appends /api/v1 when VITE_API_URL is the root origin without /api/v1", () => {
+    vi.stubEnv("VITE_API_URL", "https://dukaanly-api.onrender.com");
+    const url = getDeliveryWsUrl("del-123", "token-xyz");
+    expect(url).toBe("wss://dukaanly-api.onrender.com/api/v1/ws/deliveries/del-123?token=token-xyz");
+  });
+
   it("derives wss:// from browser window location when running on https production host", () => {
     // In jsdom or browser environment
     const originalProtocol = window.location.protocol;

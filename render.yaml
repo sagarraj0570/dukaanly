@@ -11,16 +11,7 @@ services:
     healthCheckPath: /api/v1/health/live
     autoDeploy: false
     envVars:
-      - key: APP_ENV
-        value: production
-      - key: DEBUG
-        value: "false"
-      - key: ALLOW_MOCK_PAYMENTS
-        value: "false"
-      - key: JWT_ALGORITHM
-        value: HS256
-      - key: JWT_SECRET_KEY
-        generateValue: true
+      - fromGroup: dukaanly-shared-config
       - key: DATABASE_URL
         fromDatabase:
           name: dukaanly-postgres
@@ -35,7 +26,7 @@ services:
           type: web
           name: dukaanly-frontend
           property: url
-    preDeployCommand: alembic -c alembic.ini upgrade head
+    preDeployCommand: python -m app.db.init_predeploy && alembic -c alembic.ini upgrade head
 
   # -------------------------------------------------------------
   # 2. Celery Background Worker Service
@@ -49,17 +40,7 @@ services:
     plan: starter
     autoDeploy: false
     envVars:
-      - key: APP_ENV
-        value: production
-      - key: DEBUG
-        value: "false"
-      - key: ALLOW_MOCK_PAYMENTS
-        value: "false"
-      - key: JWT_SECRET_KEY
-        fromService:
-          type: web
-          name: dukaanly-api
-          envVarKey: JWT_SECRET_KEY
+      - fromGroup: dukaanly-shared-config
       - key: DATABASE_URL
         fromDatabase:
           name: dukaanly-postgres
@@ -110,3 +91,20 @@ redis:
   - name: dukaanly-redis
     plan: starter
     ipAllowList: [] # Private network only
+
+# ---------------------------------------------------------------
+# 6. Shared Environment Groups (Variables & Auto-Generated Secrets)
+# ---------------------------------------------------------------
+envVarGroups:
+  - name: dukaanly-shared-config
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: ALLOW_MOCK_PAYMENTS
+        value: "false"
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_SECRET_KEY
+        generateValue: true
