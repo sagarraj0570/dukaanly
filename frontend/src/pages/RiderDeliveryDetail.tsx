@@ -4,7 +4,7 @@ import { useUpdateLocation } from '@/hooks/useRiders'
 import { Button } from '@/components/ui/button'
 import { ErrorState } from '@/components/ErrorState'
 import { ArrowLeft, MapPin, Package, CheckCircle, Navigation, AlertCircle } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 export const RiderDeliveryDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -16,43 +16,26 @@ export const RiderDeliveryDetail = () => {
   
   const [actionError, setActionError] = useState<string | null>(null)
   
-  // Location sharing state
-  const [isSharingLocation, setIsSharingLocation] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
-  const watchIdRef = useRef<number | null>(null)
+  const isSharingLocation = delivery?.status === 'out_for_delivery' && !locationError
 
   // Auto-start location tracking if out for delivery
   useEffect(() => {
-    if (delivery?.status === 'out_for_delivery' && !isSharingLocation) {
-      startLocationTracking()
-    } else if ((delivery?.status === 'delivered' || delivery?.status === 'cancelled') && isSharingLocation) {
-      stopLocationTracking()
-    }
-    
-    return () => {
-      stopLocationTracking()
-    }
-  }, [delivery?.status])
-
-  const startLocationTracking = () => {
-    if (!navigator.geolocation) {
-      setLocationError("Geolocation is not supported by your browser")
+    if (delivery?.status !== 'out_for_delivery') {
       return
     }
-    
-    setLocationError(null)
-    setIsSharingLocation(true)
-    
-    watchIdRef.current = navigator.geolocation.watchPosition(
+
+    if (!navigator.geolocation) {
+      return
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords
-        // Fire mutation (REST). 
-        // Real-time location is also managed by the backend WS, but the REST endpoint `/riders/me/location` works for standard persistent updates.
         updateLocation({ lat: latitude, lng: longitude })
       },
       (error) => {
         setLocationError(`Location error: ${error.message}`)
-        setIsSharingLocation(false)
       },
       {
         enableHighAccuracy: true,
@@ -60,15 +43,11 @@ export const RiderDeliveryDetail = () => {
         maximumAge: 0
       }
     )
-  }
-  
-  const stopLocationTracking = () => {
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current)
-      watchIdRef.current = null
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId)
     }
-    setIsSharingLocation(false)
-  }
+  }, [delivery?.status, updateLocation])
 
   const handleStatusTransition = (newStatus: DeliveryStatus) => {
     setActionError(null)

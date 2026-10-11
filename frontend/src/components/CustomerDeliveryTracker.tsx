@@ -33,25 +33,23 @@ export const CustomerDeliveryTracker = ({
   const token = useAuthStore((state) => state.token)
   
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>('disconnected')
-  const [liveStatus, setLiveStatus] = useState<DeliveryStatus>(delivery?.status || 'pending')
+  const [wsDeliveryStatus, setWsDeliveryStatus] = useState<DeliveryStatus | null>(null)
+  const liveStatus: DeliveryStatus = wsDeliveryStatus ?? delivery?.status ?? 'pending'
   const [riderLocation, setRiderLocation] = useState<RiderLocationState | null>(null)
+  const [currentTime, setCurrentTime] = useState(() => Date.now())
 
-  // Keep liveStatus in sync if delivery prop changes
   useEffect(() => {
-    if (delivery?.status) {
-      setLiveStatus(delivery.status)
-    }
-  }, [delivery?.status])
+    const timer = setInterval(() => setCurrentTime(Date.now()), 30000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     if (!delivery?.id) {
-      setConnectionStatus('disconnected')
       return
     }
 
     const isTerminal = delivery.status === 'delivered' || delivery.status === 'cancelled'
     if (isTerminal) {
-      setConnectionStatus('disconnected')
       return
     }
 
@@ -95,7 +93,7 @@ export const CustomerDeliveryTracker = ({
 
             if (payload.event === 'connection.ready' && payload.data) {
               if (payload.data.delivery_status) {
-                setLiveStatus(payload.data.delivery_status)
+                setWsDeliveryStatus(payload.data.delivery_status)
               }
               if (payload.data.rider_location && typeof payload.data.rider_location.latitude === 'number') {
                 setRiderLocation({
@@ -114,7 +112,7 @@ export const CustomerDeliveryTracker = ({
               }
             } else if (payload.event === 'delivery.status_changed' && payload.data) {
               if (payload.data.status) {
-                setLiveStatus(payload.data.status)
+                setWsDeliveryStatus(payload.data.status)
                 onRefreshOrder?.()
               }
             }
@@ -159,7 +157,7 @@ export const CustomerDeliveryTracker = ({
   // 15-minute freshness check matching backend settings
   const isStale = (updatedAt: string | null): boolean => {
     if (!updatedAt) return true
-    const ageMs = Date.now() - new Date(updatedAt).getTime()
+    const ageMs = currentTime - new Date(updatedAt).getTime()
     return ageMs > 15 * 60 * 1000
   }
 

@@ -24,7 +24,6 @@ export const CustomerPayment = () => {
   useEffect(() => {
     // Only initiate payment if the order is successfully fetched and in pending state
     if (order && order.status === 'pending' && !providerDetails && !isInitiating && !initiationError) {
-      setInitiationError(null)
       initiatePayment(order.id, {
         onSuccess: (data) => {
           setProviderDetails(data)

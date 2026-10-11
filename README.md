@@ -145,7 +145,7 @@ npm run build
 3. **Mock/Sandbox Payment Constraints**:
    - Real payment transactions and live gateway credentials are out of scope.
    - In `development`, the sandbox provider simulates success and failure flows using `mock_signature_valid`.
-   - In `production`, mock signatures are blocked by default unless `ALLOW_MOCK_PAYMENTS=true` is explicitly configured.
+   - In `production`, mock payments are strictly forbidden (`ALLOW_MOCK_PAYMENTS=true` raises a startup error), and live payment processing is intentionally unavailable until a separately authorized scope change.
 4. **WebSocket & Real-Time Tracking**:
    - WebSocket connections authenticate via JWT and authorize against delivery ownership (customer, assigned rider, shop owner).
    - Authoritative state is maintained in PostgreSQL; Redis Pub/Sub distributes events to connected clients.

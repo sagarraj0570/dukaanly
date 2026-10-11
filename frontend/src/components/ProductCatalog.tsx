@@ -18,12 +18,13 @@ export const ProductCatalog = ({ shopId }: ProductCatalogProps) => {
   // We'll fetch active_only=true by default from our hook logic.
   const { data, isLoading, isError, error, refetch } = useShopProducts(shopId, page, size)
 
+  const items = data?.items
   // Group products by category on the current page for organization, if there are any.
   const productsByCategory = useMemo(() => {
-    if (!data?.items) return {}
+    if (!items) return {}
     
-    const groups: Record<string, typeof data.items> = {}
-    data.items.forEach(product => {
+    const groups: Record<string, typeof items> = {}
+    items.forEach(product => {
       const cat = product.category || 'Uncategorized'
       if (!groups[cat]) groups[cat] = []
       groups[cat].push(product)
@@ -37,8 +38,8 @@ export const ProductCatalog = ({ shopId }: ProductCatalogProps) => {
     }).reduce((acc, key) => {
       acc[key] = groups[key]
       return acc
-    }, {} as Record<string, typeof data.items>)
-  }, [data?.items])
+    }, {} as Record<string, typeof items>)
+  }, [items])
 
   if (isLoading) {
     return (
