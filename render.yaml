@@ -1,0 +1,110 @@
+services:
+  # -------------------------------------------------------------
+  # 1. Backend Web Service (FastAPI API & WebSockets)
+  # -------------------------------------------------------------
+  - type: web
+    name: dukaanly-api
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    plan: starter
+    healthCheckPath: /api/v1/health/live
+    autoDeploy: false
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: ALLOW_MOCK_PAYMENTS
+        value: "false"
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dukaanly-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: dukaanly-redis
+          property: connectionString
+      - key: ALLOWED_ORIGINS
+        fromService:
+          type: web
+          name: dukaanly-frontend
+          property: url
+    preDeployCommand: alembic -c alembic.ini upgrade head
+
+  # -------------------------------------------------------------
+  # 2. Celery Background Worker Service
+  # -------------------------------------------------------------
+  - type: worker
+    name: dukaanly-worker
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerCommand: celery -A app.core.celery_app.celery_app worker --loglevel=info
+    plan: starter
+    autoDeploy: false
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: ALLOW_MOCK_PAYMENTS
+        value: "false"
+      - key: JWT_SECRET_KEY
+        fromService:
+          type: web
+          name: dukaanly-api
+          envVarKey: JWT_SECRET_KEY
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dukaanly-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: dukaanly-redis
+          property: connectionString
+
+  # -------------------------------------------------------------
+  # 3. Frontend Static Site (React + Vite SPA)
+  # -------------------------------------------------------------
+  - type: web
+    name: dukaanly-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: dukaanly-api
+          property: url
+      - key: VITE_WS_URL
+        value: "" # Dynamically derived from VITE_API_URL via wss://
+
+databases:
+  # -------------------------------------------------------------
+  # 4. Managed PostgreSQL with PostGIS
+  # -------------------------------------------------------------
+  - name: dukaanly-postgres
+    plan: starter
+    databaseName: dukaanly
+    user: dukaanly_user
+    postgresMajorVersion: 16
+    ipAllowList: [] # Private network only
+
+# ---------------------------------------------------------------
+# 5. Managed Redis (Pub/Sub & Celery Transport)
+# ---------------------------------------------------------------
+redis:
+  - name: dukaanly-redis
+    plan: starter
+    ipAllowList: [] # Private network only
