@@ -119,3 +119,20 @@ async def test_invalid_signature_and_webhooks(async_client: AsyncClient):
         headers={"x-razorpay-signature": "mock_webhook_signature_invalid"}
     )
     assert webhook_res_invalid.status_code == 400
+
+async def test_mock_payment_blocked_in_production_without_flag(async_client: AsyncClient):
+    from app.core.config import settings
+    orig_env = settings.APP_ENV
+    orig_allow = settings.ALLOW_MOCK_PAYMENTS
+    try:
+        settings.APP_ENV = "production"
+        settings.ALLOW_MOCK_PAYMENTS = False
+        
+        from app.services.payment_provider.razorpay import RazorpayPaymentProvider
+        with pytest.raises(Exception) as exc_info:
+            RazorpayPaymentProvider()
+        assert "disabled in production" in str(exc_info.value.detail)
+    finally:
+        settings.APP_ENV = orig_env
+        settings.ALLOW_MOCK_PAYMENTS = orig_allow
+

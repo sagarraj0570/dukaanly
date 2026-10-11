@@ -152,3 +152,33 @@ async def test_role_authorization(async_client: AsyncClient):
     # Attempt to access customer route as customer
     cust_res = await async_client.get("/api/v1/auth/test-customer-only", headers={"Authorization": f"Bearer {token}"})
     assert cust_res.status_code == 200
+
+async def test_register_privilege_escalation_prevented(async_client: AsyncClient):
+    unique_email = f"escalate_{uuid.uuid4()}@example.com"
+    payload = {
+        "name": "Attacker",
+        "email": unique_email,
+        "password": "Password123!",
+        "role": "admin"
+    }
+    res = await async_client.post("/api/v1/auth/register", json=payload)
+    assert res.status_code == 201
+    data = res.json()
+    assert data["role"] == "customer"
+
+async def test_invalid_and_expired_tokens(async_client: AsyncClient):
+    # Invalid token format / garbage token
+    res_bad = await async_client.get("/api/v1/auth/me", headers={"Authorization": "Bearer not-a-valid-token"})
+    assert res_bad.status_code == 401
+
+    # Forged token with invalid secret
+    import jwt
+    from datetime import datetime, timedelta, timezone
+    forged = jwt.encode(
+        {"sub": str(uuid.uuid4()), "role": "admin", "exp": datetime.now(timezone.utc) + timedelta(minutes=10)},
+        "wrong_secret_key_12345678901234567890",
+        algorithm="HS256"
+    )
+    res_forged = await async_client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {forged}"})
+    assert res_forged.status_code == 401
+

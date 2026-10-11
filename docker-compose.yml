@@ -8,42 +8,79 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-    - 127.0.0.1:${POSTGRES_PORT:-5432}:5432
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
-    - postgres_data:/var/lib/postgresql/data
-    - ./backend/db/init:/docker-entrypoint-initdb.d:ro
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test:
-      - CMD-SHELL
-      - pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
     networks:
-    - dukaanly_net
+      - dukaanly_net
+
   redis:
     image: redis:7-alpine
     container_name: dukaanly_redis
     restart: unless-stopped
-    command: 'redis-server --save 60 1 --loglevel warning
-
-      '
+    command: redis-server --save 60 1 --loglevel warning
     ports:
-    - 127.0.0.1:6379:6379
+      - "127.0.0.1:6379:6379"
     volumes:
-    - redis_data:/data
+      - redis_data:/data
     healthcheck:
       test:
-      - CMD
-      - redis-cli
-      - ping
+        - CMD
+        - redis-cli
+        - ping
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
     networks:
-    - dukaanly_net
+      - dukaanly_net
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dukaanly_api
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      APP_ENV: ${APP_ENV:-development}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8000/api/v1/health/live
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - dukaanly_net
+
   worker:
     build:
       context: ./backend
@@ -52,21 +89,28 @@ services:
     restart: unless-stopped
     command: celery -A app.core.celery_app worker --loglevel=info
     environment:
-    - DATABASE_URL=postgresql+asyncpg://:@postgres:5432/
-    - REDIS_URL=redis://redis:6379/0
-    - SECRET_KEY=
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      APP_ENV: ${APP_ENV:-development}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     networks:
-    - dukaanly_net
+      - dukaanly_net
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
+
 networks:
   dukaanly_net:
     driver: bridge

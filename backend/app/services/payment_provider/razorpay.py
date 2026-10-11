@@ -15,10 +15,18 @@ class RazorpayPaymentProvider(PaymentProvider):
         self.webhook_secret = settings.RAZORPAY_WEBHOOK_SECRET
         self.is_mock = self.key_id == "mock_key_id" or not self.key_id
         
+        if self.is_mock and settings.APP_ENV == "production" and not settings.ALLOW_MOCK_PAYMENTS:
+            raise HTTPException(
+                status_code=500,
+                detail="Mock payment provider is disabled in production without explicit ALLOW_MOCK_PAYMENTS policy."
+            )
+        
     async def create_payment_order(self, amount: float, currency: str, receipt_id: str) -> Dict[str, Any]:
         amount_paise = int(amount * 100)
         
         if self.is_mock:
+            if settings.APP_ENV == "production" and not settings.ALLOW_MOCK_PAYMENTS:
+                raise HTTPException(500, "Mock payment order creation is disabled in production.")
             # Return mocked provider order
             return {
                 "id": f"order_mock_{uuid.uuid4().hex[:10]}",
@@ -53,6 +61,8 @@ class RazorpayPaymentProvider(PaymentProvider):
             return False
             
         if self.is_mock:
+            if settings.APP_ENV == "production" and not settings.ALLOW_MOCK_PAYMENTS:
+                raise HTTPException(500, "Mock payment verification is disabled in production.")
             # Mock verification rule: signature must equal 'mock_signature_valid'
             return razorpay_signature == "mock_signature_valid"
             
@@ -67,6 +77,8 @@ class RazorpayPaymentProvider(PaymentProvider):
 
     async def verify_webhook(self, payload: bytes, signature: str) -> Dict[str, Any]:
         if self.is_mock:
+            if settings.APP_ENV == "production" and not settings.ALLOW_MOCK_PAYMENTS:
+                raise HTTPException(500, "Mock webhook verification is disabled in production.")
             if signature != "mock_webhook_signature_valid":
                 raise HTTPException(400, "Invalid webhook signature")
             return json.loads(payload)
