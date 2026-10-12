@@ -2,49 +2,45 @@
 
 ## 1. Hosting Architecture Overview (Cloud PaaS: Render)
 
-Dukaanly is deployed as a modular monolith composed of 5 coordinated services managed through [`render.yaml`](../render.yaml):
+Dukaanly is deployed as a modular monolith composed of 4 coordinated services managed through [`render.yaml`](../render.yaml) on Render's 100% Free Tier (requiring zero payment information):
 
 ```mermaid
 flowchart TD
     Client[End User Browser / Mobile]
 
-    subgraph CDN[Edge / Static Hosting]
+    subgraph CDN[Edge / Static Hosting (Free)]
         Frontend["dukaanly-frontend (React SPA on CDN)<br/>Default Hostname: https://dukaanly-frontend.onrender.com"]
     end
 
-    subgraph Compute[Containerized Application Tier]
-        API["dukaanly-api (FastAPI + WebSockets)<br/>Default Hostname: https://dukaanly-api.onrender.com"]
-        Worker["dukaanly-worker (Celery Background Tasks)<br/>Internal Process (Private Network)"]
+    subgraph Compute[Containerized Application Tier (Free)]
+        API["dukaanly-api (FastAPI + WebSockets + Background Worker)<br/>Default Hostname: https://dukaanly-api.onrender.com<br/>Runs Uvicorn + concurrent Celery worker via start.sh"]
     end
 
-    subgraph DataTier[Private Managed Data Tier]
+    subgraph DataTier[Private Managed Data Tier (Free)]
         DB[("Managed PostgreSQL 16 + PostGIS 3.4<br/>(dukaanly-postgres)")]
-        Redis[("Managed Redis 7<br/>(dukaanly-redis)")]
+        Redis[("Managed Key-Value / Redis 7<br/>(dukaanly-redis)")]
     end
 
     Client -->|HTTPS / WSS| Frontend
     Frontend -->|REST API / WebSockets| API
     API -->|Async SQLAlchemy / PostGIS| DB
     API -->|Pub/Sub & Task Dispatch| Redis
-    Worker -->|Read/Write Data| DB
-    Worker -->|Task Queue Ingestion| Redis
 ```
 
 ---
 
 ## 2. Service Definitions & Assigned Hostnames
 
-| Service | Type | Runtime | Build / Start Command | Assigned Hostname / Ingress | Health Check |
-|---|---|---|---|---|---|
-| **`dukaanly-frontend`** | Static Site | Node.js 20 | `npm ci && npm run build` (publish: `dist`) | `https://dukaanly-frontend.onrender.com` | SPA rewrite `/* -> /index.html` |
-| **`dukaanly-api`** | Web Service | Docker (`backend/Dockerfile`) | `uvicorn app.main:app --host 0.0.0.0 --port 8000` | `https://dukaanly-api.onrender.com` | `GET /api/v1/health/live` |
-| **`dukaanly-worker`** | Background Worker | Docker (`backend/Dockerfile`) | `celery -A app.core.celery_app.celery_app worker --loglevel=info` | None (Private worker process) | Celery ping / process supervisor |
-| **`dukaanly-postgres`**| Managed Database | PostgreSQL 16 | PostGIS extension auto-provisioned via pre-deploy | Private network only | Managed DB health |
-| **`dukaanly-redis`**   | Managed Key-Value | Redis 7 | Managed Redis cluster | Private network only | Managed Redis ping |
+| Service | Type | Plan | Runtime | Build / Start Command | Assigned Hostname / Ingress | Health Check |
+|---|---|---|---|---|---|---|
+| **`dukaanly-frontend`** | Static Site | Free | Node.js 20 | `npm ci && npm run build` (publish: `dist`) | `https://dukaanly-frontend.onrender.com` | SPA rewrite `/* -> /index.html` |
+| **`dukaanly-api`** | Web Service | Free | Docker (`backend/Dockerfile`) | `/app/start.sh` (Runs migrations, Celery, and Uvicorn) | `https://dukaanly-api.onrender.com` | `GET /api/v1/health/live` |
+| **`dukaanly-postgres`**| Managed Database | Free | PostgreSQL 16 | PostGIS extension auto-provisioned on startup | Private network only | Managed DB health |
+| **`dukaanly-redis`**   | Managed Key-Value | Free | Redis 7 | Managed Redis cluster | Private network only | Managed Redis ping |
 
 > [!NOTE]
 > Render's Blueprint specification for `fromService` supports properties `host`, `port`, `hostport`, `slug`, and `connectionString` (it does not support `property: url`). Therefore, canonical URLs for `ALLOWED_ORIGINS` (`https://dukaanly-frontend.onrender.com`) and `VITE_API_URL` (`https://dukaanly-api.onrender.com/api/v1`) are defined as explicit static values matching the assigned service domains.
-> Furthermore, `dukaanly-redis` is declared under `services:` as `type: keyvalue` (Render does not support a root-level `redis:` block).
+> Furthermore, `dukaanly-redis` is declared under `services:` as `type: keyvalue` (Render does not support a root-level `redis:` block). Background task processing runs concurrently inside `dukaanly-api` via `/app/start.sh`, eliminating the need for a separate paid worker service.
 
 ---
 
@@ -67,35 +63,41 @@ To guarantee that both the API and worker receive **the identical JWT secret** w
   - `DATABASE_URL`: `fromDatabase: dukaanly-postgres` (connectionString)
   - `REDIS_URL`: `fromService: dukaanly-redis` (connectionString, type: keyvalue)
   - `ALLOWED_ORIGINS`: `https://dukaanly-frontend.onrender.com`
-- **`dukaanly-worker`**:
-  - `fromGroup: dukaanly-shared-config`
-  - `DATABASE_URL`: `fromDatabase: dukaanly-postgres` (connectionString)
-  - `REDIS_URL`: `fromService: dukaanly-redis` (connectionString, type: keyvalue)
 - **`dukaanly-frontend`**:
   - `VITE_API_URL`: `https://dukaanly-api.onrender.com/api/v1`
   - `VITE_WS_URL`: `""` (dynamically derived by `getDeliveryWsUrl`)
 
 ---
 
-## 4. Automated PostGIS & Database Migration Release Phase
+## 4. Automated PostGIS & Database Migration Startup Phase
 
-Render runs an ephemeral **pre-deploy release phase** before switching customer traffic to new containers:
+Because Render Free Tier does not support standalone ephemeral `preDeployCommand` containers, migrations and PostGIS verification execute reliably at the beginning of the container startup lifecycle via [`/app/start.sh`](../backend/start.sh) before traffic is accepted:
 
 ```bash
-python -m app.db.init_predeploy && alembic -c alembic.ini upgrade head
+#!/bin/sh
+set -e
+
+# 1. PostGIS verification and database schema migrations
+python -m app.db.init_predeploy
+alembic -c alembic.ini upgrade head
+
+# 2. Celery background task worker (concurrent background process)
+if [ -n "$REDIS_URL" ]; then
+    celery -A app.core.celery_app.celery_app worker --loglevel=info --concurrency=1 &
+fi
+
+# 3. FastAPI application server
+exec uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-### Pre-Deploy Execution Sequence:
+### Startup Execution Sequence:
 1. **Connectivity Check**: Establishes async connection to PostgreSQL via `DATABASE_URL`.
-2. **PostGIS Availability Audit**: Queries `pg_available_extensions` to confirm that `postgis` binary is present in the PostgreSQL 16 engine. If missing, execution halts with exit code 1 to protect the database from broken partial migrations.
+2. **PostGIS Availability Audit**: Queries `pg_available_extensions` to confirm that `postgis` binary is present in the PostgreSQL 16 engine. If missing, execution halts with exit code 1 to protect the database.
 3. **Automated Extension Provisioning**: Executes `CREATE EXTENSION IF NOT EXISTS postgis;` idempotently.
 4. **Operational Readiness Assert**: Executes `SELECT PostGIS_Version();` and logs the verified PostGIS version (e.g. `>= 3.4`).
-5. **Schema Migration**: Executes `alembic -c alembic.ini upgrade head` to apply all pending schema revisions. The initial migration `4cf0f0146f95` also contains an idempotent `op.execute("CREATE EXTENSION IF NOT EXISTS postgis;")` safety net.
-
-### Safety Guarantees:
-- Application startup commands (`uvicorn`, `celery`) **never** execute migrations or table mutations.
-- If a migration or PostGIS check fails, the deployment halts immediately; existing running containers remain active and customer traffic is untouched.
-- Zero downtime: Traffic switches to newly provisioned containers only after both the release phase and container health checks pass.
+5. **Schema Migration**: Executes `alembic -c alembic.ini upgrade head` to apply all pending schema revisions.
+6. **Worker Launch**: Starts `celery worker` concurrently in the background with concurrency 1, connecting to `dukaanly-redis`.
+7. **Traffic Ingress**: Launches `uvicorn` in the foreground. Render's health check (`/api/v1/health/live`) passes, and user traffic begins flowing.
 
 ---
 

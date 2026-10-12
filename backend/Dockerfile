@@ -22,10 +22,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend source code and migrations
 COPY . /app
 
+# Ensure start.sh is executable
+RUN chmod +x /app/start.sh
+
 # Create a non-privileged user and switch
 RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/start.sh"]
