@@ -9,7 +9,7 @@ services:
     dockerfilePath: backend/Dockerfile
     plan: starter
     healthCheckPath: /api/v1/health/live
-    autoDeploy: false
+    autoDeployTrigger: 'off'
     envVars:
       - fromGroup: dukaanly-shared-config
       - key: DATABASE_URL
@@ -18,14 +18,11 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          type: redis
+          type: keyvalue
           name: dukaanly-redis
           property: connectionString
       - key: ALLOWED_ORIGINS
-        fromService:
-          type: web
-          name: dukaanly-frontend
-          property: url
+        value: https://dukaanly-frontend.onrender.com
     preDeployCommand: python -m app.db.init_predeploy && alembic -c alembic.ini upgrade head
 
   # -------------------------------------------------------------
@@ -38,7 +35,7 @@ services:
     dockerfilePath: backend/Dockerfile
     dockerCommand: celery -A app.core.celery_app.celery_app worker --loglevel=info
     plan: starter
-    autoDeploy: false
+    autoDeployTrigger: 'off'
     envVars:
       - fromGroup: dukaanly-shared-config
       - key: DATABASE_URL
@@ -47,7 +44,7 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          type: redis
+          type: keyvalue
           name: dukaanly-redis
           property: connectionString
 
@@ -60,36 +57,34 @@ services:
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
+    autoDeployTrigger: 'off'
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: dukaanly-api
-          property: url
+        value: https://dukaanly-api.onrender.com/api/v1
       - key: VITE_WS_URL
         value: "" # Dynamically derived from VITE_API_URL via wss://
 
+  # -------------------------------------------------------------
+  # 4. Managed Key Value / Redis (Pub/Sub & Celery Transport)
+  # -------------------------------------------------------------
+  - type: keyvalue
+    name: dukaanly-redis
+    plan: starter
+    ipAllowList: [] # Private network only
+
 databases:
   # -------------------------------------------------------------
-  # 4. Managed PostgreSQL with PostGIS
+  # 5. Managed PostgreSQL with PostGIS
   # -------------------------------------------------------------
   - name: dukaanly-postgres
     plan: starter
     databaseName: dukaanly
     user: dukaanly_user
-    postgresMajorVersion: 16
-    ipAllowList: [] # Private network only
-
-# ---------------------------------------------------------------
-# 5. Managed Redis (Pub/Sub & Celery Transport)
-# ---------------------------------------------------------------
-redis:
-  - name: dukaanly-redis
-    plan: starter
+    postgresMajorVersion: "16"
     ipAllowList: [] # Private network only
 
 # ---------------------------------------------------------------

@@ -43,7 +43,8 @@ flowchart TD
 | **`dukaanly-redis`**   | Managed Key-Value | Redis 7 | Managed Redis cluster | Private network only | Managed Redis ping |
 
 > [!NOTE]
-> If custom apex or subdomains are configured on Render (e.g. `dukaanly.com` and `api.dukaanly.com`), Render's `fromService: property: url` continues to dynamically resolve the canonical service URL, keeping `ALLOWED_ORIGINS` and `VITE_API_URL` synchronized without manual configuration changes.
+> Render's Blueprint specification for `fromService` supports properties `host`, `port`, `hostport`, `slug`, and `connectionString` (it does not support `property: url`). Therefore, canonical URLs for `ALLOWED_ORIGINS` (`https://dukaanly-frontend.onrender.com`) and `VITE_API_URL` (`https://dukaanly-api.onrender.com/api/v1`) are defined as explicit static values matching the assigned service domains.
+> Furthermore, `dukaanly-redis` is declared under `services:` as `type: keyvalue` (Render does not support a root-level `redis:` block).
 
 ---
 
@@ -64,14 +65,14 @@ To guarantee that both the API and worker receive **the identical JWT secret** w
 - **`dukaanly-api`**:
   - `fromGroup: dukaanly-shared-config`
   - `DATABASE_URL`: `fromDatabase: dukaanly-postgres` (connectionString)
-  - `REDIS_URL`: `fromService: dukaanly-redis` (connectionString)
-  - `ALLOWED_ORIGINS`: `fromService: dukaanly-frontend` (property: url $\to$ `https://dukaanly-frontend.onrender.com`)
+  - `REDIS_URL`: `fromService: dukaanly-redis` (connectionString, type: keyvalue)
+  - `ALLOWED_ORIGINS`: `https://dukaanly-frontend.onrender.com`
 - **`dukaanly-worker`**:
   - `fromGroup: dukaanly-shared-config`
   - `DATABASE_URL`: `fromDatabase: dukaanly-postgres` (connectionString)
-  - `REDIS_URL`: `fromService: dukaanly-redis` (connectionString)
+  - `REDIS_URL`: `fromService: dukaanly-redis` (connectionString, type: keyvalue)
 - **`dukaanly-frontend`**:
-  - `VITE_API_URL`: `fromService: dukaanly-api` (property: url $\to$ `https://dukaanly-api.onrender.com`)
+  - `VITE_API_URL`: `https://dukaanly-api.onrender.com/api/v1`
   - `VITE_WS_URL`: `""` (dynamically derived by `getDeliveryWsUrl`)
 
 ---
