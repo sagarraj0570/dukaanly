@@ -1,24 +1,32 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useShop } from '@/hooks/useShops'
 import { ErrorState } from '@/components/ErrorState'
 import { ProductCatalog } from '@/components/ProductCatalog'
 import { Button } from '@/components/ui/button'
-import { MapPin, ArrowLeft, Clock, Store } from 'lucide-react'
+import { MapPin, ArrowLeft, CheckCircle2, XCircle, Store, ChevronRight } from 'lucide-react'
+import { getShopCoverImage } from '@/lib/commerceMedia'
+import { useState } from 'react'
 
 export const ShopDetail = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  
+  const [coverError, setCoverError] = useState(false)
+
   const { data: shop, isLoading, isError, error, refetch } = useShop(id || '')
 
   if (isLoading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-48 bg-gray-100 rounded-lg" />
-        <div className="space-y-4">
-          <div className="h-8 bg-gray-100 rounded w-1/3" />
-          <div className="h-4 bg-gray-100 rounded w-1/2" />
-          <div className="h-4 bg-gray-100 rounded w-1/4" />
+        <div className="h-5 bg-[#EDF5EE] rounded w-48" />
+        <div className="h-64 bg-white border border-[#E5E9E4] rounded-3xl overflow-hidden p-6 space-y-4">
+          <div className="h-36 bg-[#EDF5EE] rounded-2xl" />
+          <div className="h-7 bg-[#EDF5EE] rounded w-1/3" />
+          <div className="h-4 bg-[#EDF5EE] rounded w-1/2" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-64 bg-white border border-[#E5E9E4] rounded-2xl" />
+          ))}
         </div>
       </div>
     )
@@ -27,63 +35,102 @@ export const ShopDetail = () => {
   if (isError || !shop) {
     return (
       <div className="space-y-4">
-        <Button variant="ghost" onClick={() => navigate('/customer')} className="mb-4">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Shops
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/customer')}
+          className="gap-2 text-[#69736C] hover:text-[#202923] -ml-2"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to Shops
         </Button>
-        <ErrorState 
+        <ErrorState
           title="Shop not found"
-          message={error?.message || "The shop you are looking for does not exist or is currently unavailable."}
+          message={error?.message || 'The shop you are looking for does not exist or is currently unavailable.'}
           onRetry={() => refetch()}
         />
       </div>
     )
   }
 
-  return (
-    <div className="space-y-8">
-      {/* Back Navigation */}
-      <div>
-        <Button variant="ghost" onClick={() => navigate('/customer')} className="-ml-4 text-gray-500 hover:text-gray-900">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Shops
-        </Button>
-      </div>
+  const coverUrl = getShopCoverImage(shop.name, shop.description)
 
-      {/* Shop Header Area */}
-      <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
-        <div className="h-48 bg-gray-100 flex items-center justify-center">
-          <Store className="h-16 w-16 text-gray-300" />
+  return (
+    <div className="space-y-6">
+      {/* Breadcrumb row */}
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#69736C]">
+        <Link to="/customer" className="hover:text-[#176B45] font-medium transition-colors focus-visible:outline-none focus-visible:underline">
+          Shops
+        </Link>
+        <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+        <span className="text-[#202923] font-semibold truncate max-w-xs" aria-current="page">Store Catalog</span>
+      </nav>
+
+      {/* Storefront Hero Showcase */}
+      <div className="bg-white border border-[#E5E9E4] rounded-3xl overflow-hidden shadow-soft">
+        {/* Storefront Wide Banner */}
+        <div className="relative h-48 sm:h-64 w-full bg-[#EDF5EE] overflow-hidden">
+          {!coverError ? (
+            <img
+              src={coverUrl}
+              alt={`${shop.name} storefront`}
+              onError={() => setCoverError(true)}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-[#176B45] to-[#104B32] flex items-center justify-center text-white">
+              <Store className="h-16 w-16 opacity-40" aria-hidden="true" />
+            </div>
+          )}
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent pointer-events-none" />
+
+          {/* Operating status pill */}
+          <div className="absolute top-4 right-4">
+            {shop.is_active ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-bold text-[#176B45] shadow-sm border border-[#A8D5B5]">
+                <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                Accepting Orders
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-bold text-red-700 shadow-sm border border-red-200">
+                <XCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                Closed
+              </span>
+            )}
+          </div>
         </div>
+
+        {/* Identity & Address Details */}
         <div className="p-6 sm:p-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{shop.name}</h1>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[#176B45] bg-[#EDF5EE] px-2.5 py-0.5 rounded-full">
+                  <Store className="h-3 w-3" aria-hidden="true" />
+                  Local Store
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#202923] tracking-tight">
+                {shop.name}
+              </h1>
               {shop.description && (
-                <p className="text-gray-600 max-w-2xl">{shop.description}</p>
+                <p className="text-sm text-[#69736C] mt-2 max-w-2xl leading-relaxed">
+                  {shop.description}
+                </p>
               )}
             </div>
-            
-            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
-              shop.is_active 
-                ? 'bg-green-50 text-green-700 border-green-200' 
-                : 'bg-red-50 text-red-700 border-red-200'
-            }`}>
-              <Clock className="h-4 w-4 mr-1.5" />
-              {shop.is_active ? 'Accepting Orders' : 'Currently Closed'}
-            </div>
           </div>
 
-          <div className="flex items-start gap-2 text-gray-500 mt-6 pt-6 border-t">
-            <MapPin className="h-5 w-5 shrink-0 text-gray-400 mt-0.5" />
-            <span>{shop.address}</span>
+          <div className="flex items-start sm:items-center gap-2 text-xs sm:text-sm text-[#69736C] mt-4 pt-4 border-t border-[#E5E9E4] min-w-0">
+            <MapPin className="h-4 w-4 shrink-0 text-[#176B45] mt-0.5 sm:mt-0" aria-hidden="true" />
+            <span className="break-words line-clamp-2">{shop.address}</span>
           </div>
         </div>
       </div>
 
-      {/* Catalog Area */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Products</h2>
+      {/* Product Catalog Section */}
+      <section aria-label="Product catalog" className="space-y-4 pt-2">
         <ProductCatalog shopId={shop.id} />
-      </div>
+      </section>
     </div>
   )
 }

@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { OrderDeliverySummary, DeliveryStatus } from '@/hooks/useOrders'
 import { useAuthStore } from '@/store/useAuthStore'
 import { getDeliveryWsUrl } from '@/lib/utils'
-import { 
-  MapPin, 
-  CheckCircle2, 
-  Clock, 
-  Truck, 
-  AlertCircle, 
-  Wifi, 
-  WifiOff, 
-  RotateCw 
+import {
+  MapPin,
+  CheckCircle2,
+  Clock,
+  Truck,
+  AlertCircle,
+  Wifi,
+  WifiOff,
+  RotateCw,
+  Navigation,
 } from 'lucide-react'
 
 interface CustomerDeliveryTrackerProps {
@@ -28,11 +29,18 @@ interface RiderLocationState {
 export const CustomerDeliveryTracker = ({
   delivery,
   orderStatus,
-  onRefreshOrder
+  onRefreshOrder,
 }: CustomerDeliveryTrackerProps) => {
   const token = useAuthStore((state) => state.token)
-  
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>('disconnected')
+  const onRefreshOrderRef = useRef(onRefreshOrder)
+
+  useEffect(() => {
+    onRefreshOrderRef.current = onRefreshOrder
+  }, [onRefreshOrder])
+
+  const [connectionStatus, setConnectionStatus] = useState<
+    'connecting' | 'connected' | 'reconnecting' | 'disconnected'
+  >('disconnected')
   const [wsDeliveryStatus, setWsDeliveryStatus] = useState<DeliveryStatus | null>(null)
   const liveStatus: DeliveryStatus = wsDeliveryStatus ?? delivery?.status ?? 'pending'
   const [riderLocation, setRiderLocation] = useState<RiderLocationState | null>(null)
@@ -80,8 +88,8 @@ export const CustomerDeliveryTracker = ({
           setConnectionStatus('connected')
           reconnectAttempts = 0
 
-          if (wasReconnecting && onRefreshOrder) {
-            onRefreshOrder()
+          if (wasReconnecting && onRefreshOrderRef.current) {
+            onRefreshOrderRef.current()
           }
         }
 
@@ -95,25 +103,32 @@ export const CustomerDeliveryTracker = ({
               if (payload.data.delivery_status) {
                 setWsDeliveryStatus(payload.data.delivery_status)
               }
-              if (payload.data.rider_location && typeof payload.data.rider_location.latitude === 'number') {
+              if (
+                payload.data.rider_location &&
+                typeof payload.data.rider_location.latitude === 'number'
+              ) {
                 setRiderLocation({
                   latitude: payload.data.rider_location.latitude,
                   longitude: payload.data.rider_location.longitude,
-                  updatedAt: payload.data.rider_location.updated_at || new Date().toISOString()
+                  updatedAt:
+                    payload.data.rider_location.updated_at || new Date().toISOString(),
                 })
               }
             } else if (payload.event === 'delivery.location_updated' && payload.data) {
-              if (typeof payload.data.latitude === 'number' && typeof payload.data.longitude === 'number') {
+              if (
+                typeof payload.data.latitude === 'number' &&
+                typeof payload.data.longitude === 'number'
+              ) {
                 setRiderLocation({
                   latitude: payload.data.latitude,
                   longitude: payload.data.longitude,
-                  updatedAt: payload.timestamp || new Date().toISOString()
+                  updatedAt: payload.timestamp || new Date().toISOString(),
                 })
               }
             } else if (payload.event === 'delivery.status_changed' && payload.data) {
               if (payload.data.status) {
                 setWsDeliveryStatus(payload.data.status)
-                onRefreshOrder?.()
+                onRefreshOrderRef.current?.()
               }
             }
           } catch {
@@ -152,7 +167,7 @@ export const CustomerDeliveryTracker = ({
         ws.close()
       }
     }
-  }, [delivery?.id, delivery?.status, token, onRefreshOrder])
+  }, [delivery?.id, delivery?.status, token])
 
   // 15-minute freshness check matching backend settings
   const isStale = (updatedAt: string | null): boolean => {
@@ -164,21 +179,23 @@ export const CustomerDeliveryTracker = ({
   // State: No delivery assigned yet
   if (!delivery) {
     return (
-      <div className="bg-white border rounded-xl p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b pb-3">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Truck className="h-5 w-5 text-primary" /> Delivery Tracking
+      <div className="bg-white border border-[#E5E9E4] rounded-2xl p-5 sm:p-6 shadow-soft space-y-4">
+        <div className="flex items-center justify-between border-b border-[#E5E9E4] pb-3">
+          <h2 className="text-base font-bold text-[#202923] flex items-center gap-2">
+            <Truck className="h-5 w-5 text-[#176B45]" /> Delivery Tracking
           </h2>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-[#69736C]">
             Unassigned
           </span>
         </div>
 
-        <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
-          <Clock className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+        <div className="p-5 bg-[#EDF5EE] border border-[#A8D5B5]/60 rounded-xl flex items-start gap-3">
+          <Clock className="h-5 w-5 text-[#176B45] mt-0.5 shrink-0" />
           <div>
-            <h3 className="font-semibold text-blue-900 mb-1">Waiting for Delivery Assignment</h3>
-            <p className="text-sm text-blue-800">
+            <h3 className="font-bold text-sm text-[#104B32] mb-1">
+              Waiting for Delivery Assignment
+            </h3>
+            <p className="text-xs sm:text-sm text-[#202923]/80 leading-relaxed">
               {orderStatus === 'pending'
                 ? 'Your order payment is pending. Once payment is confirmed, the shop will prepare your order and assign a delivery partner.'
                 : orderStatus === 'cancelled'
@@ -196,146 +213,182 @@ export const CustomerDeliveryTracker = ({
     { key: 'assigned', label: 'Rider Assigned', time: delivery.assigned_at },
     { key: 'picked_up', label: 'Picked Up', time: delivery.picked_up_at },
     { key: 'out_for_delivery', label: 'Out for Delivery', time: null },
-    { key: 'delivered', label: 'Delivered', time: delivery.delivered_at }
+    { key: 'delivered', label: 'Delivered', time: delivery.delivered_at },
   ]
 
   const stageOrder = ['pending', 'assigned', 'picked_up', 'out_for_delivery', 'delivered']
   const currentIndex = stageOrder.indexOf(liveStatus)
 
   return (
-    <div className="bg-white border rounded-xl p-6 shadow-sm space-y-6">
-      
+    <div className="bg-white border border-[#E5E9E4] rounded-2xl p-5 sm:p-6 shadow-soft space-y-6">
       {/* Header & Connection Indicator */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b pb-4">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-[#E5E9E4] pb-4">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Truck className="h-5 w-5 text-primary" /> Live Delivery Tracking
+          <h2 className="text-base sm:text-lg font-bold text-[#202923] flex items-center gap-2">
+            <Truck className="h-5 w-5 text-[#176B45]" aria-hidden="true" /> Live Delivery Tracking
           </h2>
-          <p className="text-xs text-gray-500 font-mono mt-0.5">
+          <p className="text-xs text-[#69736C] font-mono mt-0.5 break-all">
             Delivery ID: {delivery.id}
           </p>
+          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            Delivery status is {liveStatus.replace(/_/g, ' ')}.
+            {connectionStatus !== 'connected' && ` Connection status is ${connectionStatus}.`}
+          </div>
         </div>
 
         {/* Live Status & Connection Pill */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {connectionStatus === 'connected' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#EDF5EE] text-[#176B45] border border-[#A8D5B5]">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#176B45] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#176B45]" />
               </span>
               Live Connected
             </span>
           )}
 
           {connectionStatus === 'reconnecting' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
               <RotateCw className="h-3 w-3 animate-spin text-amber-600" />
               Reconnecting...
             </span>
           )}
 
           {connectionStatus === 'connecting' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
               <Wifi className="h-3 w-3 animate-pulse text-blue-600" />
               Connecting...
             </span>
           )}
 
           {connectionStatus === 'disconnected' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-              <WifiOff className="h-3 w-3 text-gray-400" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-[#69736C] border border-[#E5E9E4]">
+              <WifiOff className="h-3 w-3 text-[#69736C]" />
               {['delivered', 'cancelled'].includes(liveStatus) ? 'Completed' : 'Offline'}
             </span>
           )}
 
-          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
-            liveStatus === 'delivered' ? 'bg-green-100 text-green-800' :
-            liveStatus === 'cancelled' ? 'bg-red-100 text-red-800' :
-            liveStatus === 'out_for_delivery' ? 'bg-orange-100 text-orange-800' :
-            'bg-blue-100 text-blue-800'
-          }`}>
+          <span
+            className={`px-2.5 py-1 rounded-full text-xs font-bold capitalize ${
+              liveStatus === 'delivered'
+                ? 'bg-[#EDF5EE] text-[#176B45] border border-[#A8D5B5]'
+                : liveStatus === 'cancelled'
+                ? 'bg-red-50 text-red-700 border border-red-200'
+                : 'bg-blue-50 text-blue-700 border border-blue-200'
+            }`}
+          >
             {liveStatus.replace(/_/g, ' ')}
           </span>
         </div>
       </div>
 
-      {/* Progress Timeline */}
+      {/* Vertical Order-Stage Timeline */}
       <div className="py-2">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <h3 className="text-xs font-bold text-[#69736C] uppercase tracking-wider mb-4">
+          Delivery Progress
+        </h3>
+
+        <div className="relative pl-6 sm:pl-8 space-y-6 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#E5E9E4]">
           {stages.map((stage, idx) => {
             const isCompleted = currentIndex > idx + 1 || liveStatus === 'delivered'
             const isCurrent = stageOrder[currentIndex] === stage.key && liveStatus !== 'delivered'
-            
+
             return (
-              <div 
-                key={stage.key}
-                className={`p-3 rounded-lg border text-center transition-all ${
-                  isCompleted 
-                    ? 'bg-green-50 border-green-200 text-green-900' 
-                    : isCurrent 
-                    ? 'bg-blue-50 border-blue-300 text-blue-900 shadow-sm ring-1 ring-blue-300' 
-                    : 'bg-gray-50 border-gray-200 text-gray-500'
-                }`}
-              >
-                <div className="flex justify-center mb-1.5">
+              <div key={stage.key} className="relative flex items-start gap-3">
+                {/* Stage marker dot */}
+                <div
+                  className={`absolute -left-6 sm:-left-8 top-0.5 h-6 w-6 rounded-full flex items-center justify-center ring-4 ring-white ${
+                    isCompleted
+                      ? 'bg-[#176B45] text-white shadow-sm'
+                      : isCurrent
+                      ? 'bg-[#176B45] text-white animate-pulse'
+                      : 'bg-white border-2 border-[#E5E9E4] text-[#69736C]'
+                  }`}
+                >
                   {isCompleted ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <CheckCircle2 className="h-3.5 w-3.5" />
                   ) : isCurrent ? (
-                    <Truck className="h-5 w-5 text-blue-600 animate-pulse" />
+                    <Navigation className="h-3 w-3" />
                   ) : (
-                    <Clock className="h-5 w-5 text-gray-400" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#E5E9E4]" />
                   )}
                 </div>
-                <p className="font-semibold text-xs">{stage.label}</p>
-                {stage.time && (
-                  <p className="text-[10px] text-gray-500 mt-0.5">
-                    {new Date(stage.time).toLocaleTimeString()}
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p
+                      className={`text-sm font-bold ${
+                        isCompleted || isCurrent ? 'text-[#202923]' : 'text-[#69736C]'
+                      }`}
+                    >
+                      {stage.label}
+                    </p>
+                    {stage.time && (
+                      <span className="text-xs font-mono text-[#69736C]">
+                        {new Date(stage.time).toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#69736C] mt-0.5">
+                    {stage.key === 'assigned'
+                      ? 'Delivery partner matched with order'
+                      : stage.key === 'picked_up'
+                      ? 'Order collected from the merchant'
+                      : stage.key === 'out_for_delivery'
+                      ? 'Rider is on the way to your delivery address'
+                      : 'Order handed over successfully'}
                   </p>
-                )}
+                </div>
               </div>
             )
           })}
         </div>
       </div>
 
-      {/* Rider Location Tracking Display */}
-      <div className="bg-gray-50 border rounded-lg p-4 space-y-3">
+      {/* Rider Location Display & Honest GPS Radar Card */}
+      <div className="bg-[#FAF9F6] border border-[#E5E9E4] rounded-2xl p-4 sm:p-5 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" /> Rider Coordinates & Signal
+          <h3 className="text-sm font-bold text-[#202923] flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-[#176B45]" /> Rider Coordinates & Signal
           </h3>
           {riderLocation && (
-            <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-              isStale(riderLocation.updatedAt)
-                ? 'bg-amber-100 text-amber-800'
-                : 'bg-green-100 text-green-800'
-            }`}>
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                isStale(riderLocation.updatedAt)
+                  ? 'bg-amber-100 text-amber-800'
+                  : 'bg-[#EDF5EE] text-[#176B45] border border-[#A8D5B5]'
+              }`}
+            >
               {isStale(riderLocation.updatedAt) ? 'Last Known (Stale)' : 'Active Signal'}
             </span>
           )}
         </div>
 
         {riderLocation ? (
-          <div className="bg-white p-3 rounded border text-sm space-y-1.5">
-            <div className="flex justify-between items-center text-gray-700">
-              <span className="text-xs text-gray-500">Latitude:</span>
-              <span className="font-mono text-xs font-semibold">{riderLocation.latitude.toFixed(5)}</span>
+          <div className="bg-white p-4 rounded-xl border border-[#E5E9E4] text-sm space-y-2">
+            <div className="flex justify-between items-center text-[#202923]">
+              <span className="text-xs text-[#69736C]">Latitude:</span>
+              <span className="font-mono text-xs font-semibold">
+                {riderLocation.latitude.toFixed(5)}
+              </span>
             </div>
-            <div className="flex justify-between items-center text-gray-700">
-              <span className="text-xs text-gray-500">Longitude:</span>
-              <span className="font-mono text-xs font-semibold">{riderLocation.longitude.toFixed(5)}</span>
+            <div className="flex justify-between items-center text-[#202923]">
+              <span className="text-xs text-[#69736C]">Longitude:</span>
+              <span className="font-mono text-xs font-semibold">
+                {riderLocation.longitude.toFixed(5)}
+              </span>
             </div>
             {riderLocation.updatedAt && (
-              <div className="flex justify-between items-center text-gray-500 text-[11px] pt-1 border-t">
-                <span>Timestamp:</span>
+              <div className="flex justify-between items-center text-[#69736C] text-[11px] pt-1.5 border-t border-[#E5E9E4]">
+                <span>Last Updated:</span>
                 <span>{new Date(riderLocation.updatedAt).toLocaleTimeString()}</span>
               </div>
             )}
           </div>
         ) : (
-          <div className="p-3 bg-white border rounded text-xs text-gray-500 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-gray-400 shrink-0" />
+          <div className="p-4 bg-white border border-[#E5E9E4] rounded-xl text-xs text-[#69736C] flex items-center gap-2.5">
+            <AlertCircle className="h-4 w-4 text-[#69736C] shrink-0" />
             <span>
               {['delivered', 'cancelled'].includes(liveStatus)
                 ? 'Delivery completed. Live location tracking closed.'
@@ -344,7 +397,6 @@ export const CustomerDeliveryTracker = ({
           </div>
         )}
       </div>
-
     </div>
   )
 }

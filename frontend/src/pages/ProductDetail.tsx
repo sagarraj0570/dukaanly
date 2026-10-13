@@ -5,7 +5,18 @@ import { useAddToCart } from '@/hooks/useCart'
 import { ErrorState } from '@/components/ErrorState'
 import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
-import { ArrowLeft, Package, Store, ShoppingCart, Check } from 'lucide-react'
+import { getProductImage, extractProductUnit } from '@/lib/commerceMedia'
+import {
+  ArrowLeft,
+  Package,
+  Store,
+  ShoppingCart,
+  Check,
+  Tag,
+  Plus,
+  Minus,
+  ShieldCheck,
+} from 'lucide-react'
 import { useState } from 'react'
 import type { AxiosError } from 'axios'
 
@@ -13,14 +24,12 @@ export const ProductDetail = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [imageError, setImageError] = useState(false)
+  const [quantity, setQuantity] = useState(1)
   const [addError, setAddError] = useState<string | null>(null)
   const [added, setAdded] = useState(false)
-  
-  const { data: product, isLoading, isError, error, refetch } = useProduct(id || '')
-  
-  // We optionally fetch the shop to display shop navigation gracefully
-  const { data: shop } = useShop(product?.shop_id || '')
 
+  const { data: product, isLoading, isError, error, refetch } = useProduct(id || '')
+  const { data: shop } = useShop(product?.shop_id || '')
   const { mutate: addToCart, isPending: isAdding } = useAddToCart()
 
   const handleAddToCart = () => {
@@ -28,29 +37,32 @@ export const ProductDetail = () => {
     setAdded(false)
     if (!product) return
 
-    addToCart({ product_id: product.id, quantity: 1 }, {
-      onSuccess: () => {
-        setAdded(true)
-        setTimeout(() => setAdded(false), 3000)
-      },
-      onError: (err: AxiosError<any>) => {
-        const errorMsg = err.response?.data?.detail || err.message
-        setAddError(errorMsg)
+    addToCart(
+      { product_id: product.id, quantity },
+      {
+        onSuccess: () => {
+          setAdded(true)
+          setTimeout(() => setAdded(false), 3000)
+        },
+        onError: (err: AxiosError<any>) => {
+          setAddError(err.response?.data?.detail || err.message)
+        },
       }
-    })
+    )
   }
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse max-w-4xl mx-auto">
-        <div className="h-8 bg-gray-100 rounded w-1/4 mb-8" />
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="w-full md:w-1/2 h-80 bg-gray-100 rounded-lg" />
-          <div className="w-full md:w-1/2 space-y-4">
-            <div className="h-8 bg-gray-100 rounded w-3/4" />
-            <div className="h-6 bg-gray-100 rounded w-1/4" />
-            <div className="h-4 bg-gray-100 rounded w-full" />
-            <div className="h-4 bg-gray-100 rounded w-full" />
+      <div className="max-w-5xl mx-auto animate-pulse space-y-6">
+        <div className="h-8 bg-[#EDF5EE] rounded w-32" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white border border-[#E5E9E4] rounded-3xl p-6 sm:p-8">
+          <div className="h-80 bg-[#EDF5EE] rounded-2xl" />
+          <div className="space-y-4 pt-2">
+            <div className="h-5 bg-[#EDF5EE] rounded w-1/4" />
+            <div className="h-8 bg-[#EDF5EE] rounded w-3/4" />
+            <div className="h-8 bg-[#EDF5EE] rounded w-1/3" />
+            <div className="h-4 bg-[#EDF5EE] rounded w-full" />
+            <div className="h-12 bg-[#EDF5EE] rounded-xl mt-8" />
           </div>
         </div>
       </div>
@@ -59,112 +71,207 @@ export const ProductDetail = () => {
 
   if (isError || !product) {
     return (
-      <div className="space-y-4 max-w-4xl mx-auto">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Go Back
+      <div className="max-w-5xl mx-auto space-y-4">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="gap-2 text-[#69736C] -ml-2"
+        >
+          <ArrowLeft className="h-4 w-4" /> Go Back
         </Button>
-        <ErrorState 
+        <ErrorState
           title="Product not found"
-          message={error?.message || "The product you are looking for does not exist or is currently unavailable."}
+          message={
+            error?.message ||
+            'The product you are looking for does not exist or is currently unavailable.'
+          }
           onRetry={() => refetch()}
         />
       </div>
     )
   }
 
+  const resolvedImage = getProductImage(product.name, product.category, product.image_url)
+  const unitLabel = extractProductUnit(product.name)
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <Button 
-        variant="ghost" 
-        onClick={() => navigate(`/customer/shops/${product.shop_id}`)} 
-        className="-ml-4 text-gray-500 hover:text-gray-900"
+      {/* Back navigation */}
+      <Button
+        variant="ghost"
+        onClick={() => navigate(`/customer/shops/${product.shop_id}`)}
+        className="gap-2 text-[#69736C] hover:text-[#202923] -ml-2"
       >
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back to {shop?.name || 'Shop'}
+        <ArrowLeft className="h-4 w-4" />
+        Back to {shop?.name || 'Shop'}
       </Button>
 
-      <div className="bg-white border rounded-xl overflow-hidden shadow-sm flex flex-col md:flex-row">
-        {/* Image Section */}
-        <div className="w-full md:w-1/2 bg-gray-100 flex items-center justify-center min-h-[300px] md:min-h-[400px] relative border-b md:border-b-0 md:border-r">
-          {product.image_url && !imageError ? (
-            <img 
-              src={product.image_url} 
-              alt={product.name} 
-              className="w-full h-full object-cover"
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center text-gray-400">
-              <Package className="h-16 w-16 mb-2 opacity-50" />
-              <span className="text-sm font-medium uppercase tracking-wider opacity-70">No Image Available</span>
-            </div>
-          )}
-        </div>
+      <div className="bg-white border border-[#E5E9E4] rounded-3xl overflow-hidden shadow-soft">
+        <div className="grid grid-cols-1 md:grid-cols-12">
+          {/* Product Image Showcase */}
+          <div className="md:col-span-6 p-6 sm:p-8 bg-[#FAF9F6] border-b md:border-b-0 md:border-r border-[#E5E9E4] flex items-center justify-center">
+            <div className="relative w-full max-w-[380px] aspect-square rounded-2xl overflow-hidden bg-white border border-[#E5E9E4] flex items-center justify-center shadow-soft mx-auto">
+              {!imageError ? (
+                <img
+                  src={resolvedImage}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-[#69736C]/50 gap-3">
+                  <Package className="h-16 w-16 text-[#176B45]/40" aria-hidden="true" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">
+                    Product Image
+                  </span>
+                </div>
+              )}
 
-        {/* Details Section */}
-        <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col">
-          <div className="mb-6">
-            <div className="flex items-start justify-between gap-4 mb-2">
-              {product.category && (
-                <span className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+              {!product.is_active && (
+                <div className="absolute inset-0 bg-white/75 backdrop-blur-[2px] flex items-center justify-center">
+                  <span className="badge-error text-sm px-4 py-1.5 shadow-sm">
+                    Currently Unavailable
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Product Details & Controls */}
+          <div className="md:col-span-6 p-6 sm:p-8 flex flex-col">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              {product.category ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EDF5EE] px-3 py-1 text-xs font-bold text-[#176B45] uppercase tracking-wider">
+                  <Tag className="h-3 w-3" aria-hidden="true" />
                   {product.category}
                 </span>
-              )}
-              {!product.is_active && (
-                <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800 border border-red-200">
-                  Currently Unavailable
-                </span>
-              )}
-            </div>
-            
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.name}</h1>
-            
-            <div className="text-3xl font-extrabold text-gray-900 mb-6">
-              {formatCurrency(product.price)}
-            </div>
-            
-            {product.description && (
-              <div className="prose prose-sm text-gray-600 mb-8">
-                <p>{product.description}</p>
-              </div>
-            )}
-          </div>
-          
-          <div className="mt-auto pt-6 border-t border-gray-100 flex items-center gap-3">
-            <Store className="h-5 w-5 text-gray-400" />
-            <span className="text-sm text-gray-500 font-medium">
-              Sold by: <span className="text-gray-900">{shop?.name || 'Loading shop...'}</span>
-            </span>
-          </div>
-          
-          <div className="mt-6 flex flex-col gap-3">
-            {addError && (
-              <div className="p-3 bg-red-50 text-red-700 text-sm border border-red-200 rounded-md">
-                <p className="font-medium mb-1">Could not add to cart</p>
-                <p>{addError}</p>
-                {addError.toLowerCase().includes('one shop') && (
-                  <Link to="/customer/cart" className="underline mt-1 block">View current cart</Link>
-                )}
-              </div>
-            )}
-            
-            <Button 
-              size="lg" 
-              className="w-full text-base h-12"
-              disabled={!product.is_active || isAdding || added}
-              onClick={handleAddToCart}
-            >
-              {isAdding ? (
-                <span>Adding...</span>
-              ) : added ? (
-                <>
-                  <Check className="mr-2 h-5 w-5" /> Added to Cart
-                </>
               ) : (
-                <>
-                  <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
-                </>
+                <span />
               )}
-            </Button>
+              {product.is_active ? (
+                <span className="badge-success">Available</span>
+              ) : (
+                <span className="badge-error">Unavailable</span>
+              )}
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#202923] leading-tight">
+              {product.name}
+            </h1>
+
+            {unitLabel && (
+              <p className="text-sm font-medium text-[#69736C] mt-1">
+                Pack size: {unitLabel}
+              </p>
+            )}
+
+            <div className="mt-4 mb-5 flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-[#176B45]">
+                {formatCurrency(product.price)}
+              </span>
+              <span className="text-xs text-[#69736C]">Inclusive of all taxes</span>
+            </div>
+
+            {product.description && (
+              <p className="text-sm sm:text-base text-[#69736C] leading-relaxed mb-6">
+                {product.description}
+              </p>
+            )}
+
+            {/* Sold by Shop Card */}
+            <Link
+              to={`/customer/shops/${product.shop_id}`}
+              className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E9E4] hover:border-[#A8D5B5] transition-colors mb-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B45] focus-visible:ring-offset-2"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-9 w-9 rounded-xl bg-[#EDF5EE] flex items-center justify-center shrink-0">
+                  <Store className="h-4.5 w-4.5 text-[#176B45]" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-[#69736C]">Sold by local shop</p>
+                  <p className="text-sm font-bold text-[#202923] truncate">
+                    {shop?.name || 'Local Partner Store'}
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-[#176B45] shrink-0">
+                View Store →
+              </span>
+            </Link>
+
+            {/* Quantity & Add to Cart */}
+            <div className="mt-auto space-y-3 pt-2 border-t border-[#E5E9E4]">
+              {addError && (
+                <div role="alert" aria-live="assertive" className="p-3.5 bg-red-50 text-red-700 text-xs sm:text-sm border border-red-200 rounded-xl">
+                  <p className="font-semibold mb-0.5">Could not add to cart</p>
+                  <p>{addError}</p>
+                  {addError.toLowerCase().includes('one shop') && (
+                    <Link
+                      to="/customer/cart"
+                      className="underline font-semibold text-red-700 mt-1.5 inline-block"
+                    >
+                      View current cart →
+                    </Link>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                {/* Quantity Stepper */}
+                <div
+                  role="group"
+                  aria-label="Quantity selector"
+                  className="flex items-center border border-[#E5E9E4] rounded-xl h-12 bg-[#FAF9F6] overflow-hidden shrink-0"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    disabled={quantity <= 1 || !product.is_active}
+                    aria-label="Decrease quantity"
+                    className="w-10 h-full flex items-center justify-center text-[#202923] hover:bg-[#EDF5EE] disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B45]"
+                  >
+                    <Minus className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                  <span role="status" aria-live="polite" className="w-10 text-center text-sm font-bold text-[#202923]">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => q + 1)}
+                    disabled={!product.is_active}
+                    aria-label="Increase quantity"
+                    className="w-10 h-full flex items-center justify-center text-[#202923] hover:bg-[#EDF5EE] disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B45]"
+                  >
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+
+                {/* Primary Add to Cart CTA */}
+                <Button
+                  size="lg"
+                  className="flex-1 h-12 rounded-xl bg-[#176B45] hover:bg-[#104B32] text-white text-sm sm:text-base font-semibold gap-2 shadow-sm px-3 sm:px-6"
+                  disabled={!product.is_active || isAdding || added}
+                  onClick={handleAddToCart}
+                >
+                  {isAdding ? (
+                    'Adding…'
+                  ) : added ? (
+                    <>
+                      <Check className="h-5 w-5" aria-hidden="true" /> Added to Cart
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-5 w-5" aria-hidden="true" /> Add to Cart
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs text-[#69736C] pt-1">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#176B45]" />
+                <span>Availability is confirmed when you add this item to your cart</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
