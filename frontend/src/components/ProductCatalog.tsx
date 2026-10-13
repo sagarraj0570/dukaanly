@@ -106,26 +106,32 @@ export const ProductCatalog = ({ shopId }: ProductCatalogProps) => {
   return (
     <div className="space-y-6">
       {/* Category Tabs */}
-      <div role="tablist" aria-label="Product categories" className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-[#E5E9E4]">
-        {availableCategories.map((cat) => {
-          const isActive = selectedCat === cat
-          return (
-            <button
-              key={cat}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => setSelectedCat(cat)}
-              className={`px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap -mb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B45] rounded-t-lg ${
-                isActive
-                  ? 'border-[#176B45] text-[#176B45]'
-                  : 'border-transparent text-[#69736C] hover:text-[#202923]'
-              }`}
-            >
-              {cat === 'All' ? 'All Products' : cat}
-            </button>
-          )
-        })}
+      <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div
+          role="tablist"
+          aria-label="Product categories"
+          className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none border-b border-[#E5E9E4] scroll-smooth overscroll-x-contain"
+        >
+          {availableCategories.map((cat) => {
+            const isActive = selectedCat === cat
+            return (
+              <button
+                key={cat}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setSelectedCat(cat)}
+                className={`px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap -mb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B45] rounded-t-lg shrink-0 ${
+                  isActive
+                    ? 'border-[#176B45] text-[#176B45]'
+                    : 'border-transparent text-[#69736C] hover:text-[#202923]'
+                }`}
+              >
+                {cat === 'All' ? 'All Products' : cat}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* In-Shop Search & Sort Controls */}

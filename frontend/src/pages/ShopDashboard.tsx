@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/useAuthStore'
 import { api } from '@/api/axios'
@@ -48,6 +48,15 @@ export const ShopDashboard = () => {
   const [newProductStock, setNewProductStock] = useState('')
   const [productError, setProductError] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!isAddProductOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsAddProductOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isAddProductOpen])
+
   // Edit stock inline with optimistic locking
   const [editingStockId, setEditingStockId] = useState<string | null>(null)
   const [editingStockValue, setEditingStockValue] = useState<string>('')
@@ -65,10 +74,16 @@ export const ShopDashboard = () => {
   } = useQuery<Shop | null>({
     queryKey: ['my-shop', user?.id],
     queryFn: async () => {
-      const res = await api.get('/shops', { params: { size: 100 } })
-      const items: Shop[] = res.data.items || []
-      const found = items.find((s) => s.owner_id === user?.id)
-      return found || null
+      let page = 1
+      while (page <= 10) {
+        const res = await api.get('/shops', { params: { page, size: 100 } })
+        const items: Shop[] = res.data.items || []
+        const found = items.find((s) => s.owner_id === user?.id)
+        if (found) return found
+        if (items.length < 100 || (res.data.total && page * 100 >= res.data.total)) break
+        page++
+      }
+      return null
     },
     enabled: !!user?.id,
   })
@@ -96,7 +111,7 @@ export const ShopDashboard = () => {
     queryKey: ['shop-products', shop?.id],
     queryFn: async () => {
       const res = await api.get(`/shops/${shop!.id}/products`, {
-        params: { size: 100, active_only: false },
+        params: { size: 100 },
       })
       return res.data
     },
@@ -884,8 +899,8 @@ export const ShopDashboard = () => {
       {isAddProductOpen && (
         <div
           className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm p-4"
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') setIsAddProductOpen(false)
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsAddProductOpen(false)
           }}
         >
           <div
