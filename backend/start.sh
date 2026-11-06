@@ -27,4 +27,4 @@ if [ "${START_CELERY_EMBEDDED:-false}" = "true" ] && [ -n "$REDIS_URL" ]; then
 fi
 
 echo "==> Starting Uvicorn web server..."
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips="${FORWARDED_ALLOW_IPS:-*}"
+exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}" --proxy-headers --forwarded-allow-ips="${FORWARDED_ALLOW_IPS:-*}"
