@@ -50,7 +50,7 @@ export const ShopLayout = () => {
   ]
 
   return (
-    <div className="flex h-screen bg-bg overflow-hidden">
+    <div className="flex h-screen h-[100dvh] min-h-[100dvh] bg-bg overflow-hidden">
       {/* Skip Navigation Link */}
       <a
         href="#main-content"
@@ -202,7 +202,7 @@ export const ShopLayout = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile top bar */}
-        <header className="h-14 bg-surface border-b border-border flex items-center justify-between px-4 md:hidden shrink-0">
+        <header className="h-14 bg-surface border-b border-border flex items-center justify-between px-3 md:hidden shrink-0">
           <button
             ref={menuButtonRef}
             type="button"
@@ -210,7 +210,7 @@ export const ShopLayout = () => {
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-sidebar"
-            className="p-2 rounded-lg hover:bg-sand text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf cursor-pointer"
+            className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-sand text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf cursor-pointer"
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -224,7 +224,7 @@ export const ShopLayout = () => {
             type="button"
             onClick={logout}
             aria-label="Sign out"
-            className="p-2 rounded-lg hover:bg-sand text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf cursor-pointer"
+            className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-sand text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf cursor-pointer"
           >
             <LogOut className="h-4 w-4" aria-hidden="true" />
           </button>

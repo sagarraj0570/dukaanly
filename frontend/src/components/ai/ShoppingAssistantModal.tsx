@@ -222,14 +222,19 @@ export const ShoppingAssistantModal: React.FC<ShoppingAssistantModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="ai-assistant-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="relative w-full max-w-2xl bg-surface rounded-2xl shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[85vh] border border-border overflow-hidden">
+      <div className="relative w-full max-w-2xl bg-surface rounded-t-[20px] sm:rounded-2xl shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[85vh] border-t sm:border border-border overflow-hidden overscroll-contain pb-safe sm:pb-0">
+        {/* Mobile Drag Handle */}
+        <div className="pt-2 pb-1 sm:hidden flex justify-center bg-surface-alt">
+          <div className="w-10 h-1 rounded-full bg-border-strong/50" />
+        </div>
+
         {/* Header */}
-        <header className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-border bg-surface-alt">
+        <header className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border bg-surface-alt">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-700 text-white shadow-xs">
               <Sparkles className="h-4.5 w-4.5" />
@@ -256,7 +261,7 @@ export const ShoppingAssistantModal: React.FC<ShoppingAssistantModalProps> = ({
               <button
                 type="button"
                 onClick={handleResetChat}
-                className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-primary-50 transition-colors"
+                className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-primary-50 transition-colors cursor-pointer"
                 title="Clear conversation"
                 aria-label="Clear conversation"
               >
@@ -266,7 +271,7 @@ export const ShoppingAssistantModal: React.FC<ShoppingAssistantModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-primary-50 transition-colors"
+              className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-primary-50 transition-colors cursor-pointer"
               aria-label="Close assistant"
             >
               <X className="h-4.5 w-4.5" />

@@ -435,10 +435,10 @@ export const CustomerDeliveryTracker = ({
         </div>
       </div>
 
-      {/* Main Grid: Leaflet Map beside ETA Panel on Desktop; above on mobile */}
+      {/* Main Grid: Leaflet Map first on Mobile; side-by-side (5 cols ETA, 7 cols Map) on Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left column (Desktop: 5 cols, Mobile: Above map) */}
-        <div className="lg:col-span-5 space-y-5">
+        {/* Left column (Desktop: 5 cols, Mobile: Below map) */}
+        <div className="order-2 lg:order-1 lg:col-span-5 space-y-5">
           {/* Smart Delivery ETA Card */}
           <DeliveryEtaCard etaData={etaData} isLoading={isEtaLoading} />
 
@@ -558,8 +558,8 @@ export const CustomerDeliveryTracker = ({
           </div>
         </div>
 
-        {/* Right column: Leaflet Map */}
-        <div className="lg:col-span-7">
+        {/* Leaflet Map: First on mobile (order-1), right column on desktop (order-2) */}
+        <div className="order-1 lg:order-2 lg:col-span-7">
           <DeliveryRouteMap
             route={route}
             liveRiderLocation={

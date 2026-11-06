@@ -105,11 +105,11 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
       {/* Out of Stock, Quantity Stepper, or Add Button */}
       {!product.is_active ? (
-        <span className="mt-3 w-full min-h-[36px] h-9 rounded-[10px] text-xs font-semibold inline-flex items-center justify-center bg-sand text-ink-soft border border-border cursor-not-allowed opacity-60">
+        <span className="mt-3 w-full min-h-[44px] rounded-[10px] text-xs font-semibold inline-flex items-center justify-center bg-sand text-ink-soft border border-border cursor-not-allowed opacity-60">
           Out of stock
         </span>
       ) : cartItem ? (
-        <div className="mt-3 flex items-center justify-between h-9 min-h-[36px] rounded-[10px] bg-sand border border-border px-1.5">
+        <div className="mt-3 flex items-center justify-between min-h-[44px] rounded-[10px] bg-sand border border-border px-1">
           <button
             type="button"
             onClick={(e) => {
@@ -124,11 +124,11 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             }}
             disabled={isUpdating || isRemoving}
             aria-label={`Decrease quantity of ${product.name}`}
-            className="h-7 w-7 rounded-[8px] bg-surface hover:bg-border/60 text-ink flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf cursor-pointer"
+            className="w-10 h-10 rounded-[8px] bg-surface hover:bg-border/60 text-ink flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf cursor-pointer shrink-0"
           >
-            <Minus className="h-3.5 w-3.5" />
+            <Minus className="h-4 w-4" />
           </button>
-          <span className="num font-bold text-sm text-ink px-2 select-none">
+          <span className="num font-bold text-sm text-ink px-1 select-none">
             {cartItem.quantity}
           </span>
           <button
@@ -141,9 +141,9 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             }}
             disabled={isUpdating || isRemoving}
             aria-label={`Increase quantity of ${product.name}`}
-            className="h-7 w-7 rounded-[8px] bg-surface hover:bg-border/60 text-ink flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf cursor-pointer"
+            className="w-10 h-10 rounded-[8px] bg-surface hover:bg-border/60 text-ink flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf cursor-pointer shrink-0"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-4 w-4" />
           </button>
         </div>
       ) : (
@@ -152,7 +152,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           onClick={handleQuickAdd}
           disabled={isAdding}
           aria-label={justAdded ? `Added ${product.name} to cart` : `Add ${product.name} to cart`}
-          className={`mt-3 w-full min-h-[36px] h-9 rounded-[10px] text-xs sm:text-sm font-semibold inline-flex items-center justify-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-paper active:scale-[0.98] ${
+          className={`mt-3 w-full min-h-[44px] rounded-[10px] text-xs sm:text-sm font-semibold inline-flex items-center justify-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-paper active:scale-[0.98] ${
             justAdded
               ? 'bg-sage-tint text-leaf border border-leaf/30'
               : 'bg-leaf hover:bg-leaf-hover text-leaf-ink border border-transparent'

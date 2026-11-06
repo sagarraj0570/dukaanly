@@ -3,7 +3,7 @@ import { api } from '@/api/axios'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Package, Loader2 } from 'lucide-react'
 import { getProductImage } from '@/lib/commerceMedia'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, isTestEntity } from '@/lib/utils'
 import { useState } from 'react'
 import type { ProductListResponse, Product } from '@/hooks/useProducts'
 import type { ShopListResponse } from '@/hooks/useShops'
@@ -17,7 +17,7 @@ export const FeaturedProducts = () => {
         params: { verified_only: true, size: 6, page: 1 },
       })
       const verifiedShops = (shopsRes.data?.items ?? []).filter(
-        (s) => s.verification_status === 'verified' && s.is_orderable
+        (s) => s.verification_status === 'verified' && s.is_orderable && !isTestEntity(s.name, s.description)
       )
 
       if (verifiedShops.length === 0) return []
@@ -36,7 +36,7 @@ export const FeaturedProducts = () => {
       const allProducts: Product[] = []
       for (const result of results) {
         if (result.status === 'fulfilled') {
-          allProducts.push(...result.value)
+          allProducts.push(...result.value.filter((p) => !isTestEntity(p.name, p.description)))
         }
       }
 

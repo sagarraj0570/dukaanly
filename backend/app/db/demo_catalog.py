@@ -636,19 +636,19 @@ DEMO_PRODUCTS: Dict[str, List[Dict[str, Any]]] = {
         },
         # Dedicated Edge-Case Items for Testing Stock Bounds
         {
-            "name": "Catch Kashmiri Chilli Powder 100g (Zero Stock Sample)",
+            "name": "Catch Kashmiri Chilli Powder 100g",
             "category": "Groceries",
             "price": Decimal("78.00"),
             "stock": 0,
-            "description": "[EDGE CASE: Stock=0] Seeded with zero stock to test out-of-stock validation.",
+            "description": "Authentic Kashmiri red chilli powder giving rich natural color and gentle heat to curries.",
             "image_url": "/static/media/products/65b299ec28ebce91ab943b3c0ef73d2c25dd8622061bb248c8aa607287745ffe.webp",
         },
         {
-            "name": "Amul Moti Toned Long Life Milk 450ml (Low Stock Sample)",
+            "name": "Amul Moti Toned Long Life Milk 450ml",
             "category": "Dairy",
             "price": Decimal("32.00"),
             "stock": 2,
-            "description": "[EDGE CASE: Stock=2] Seeded with low inventory to verify concurrent checkout bounds.",
+            "description": "Homogenised toned long life UHT milk packaged in tamper-evident pouch for daily freshness.",
             "image_url": "/static/media/products/38a948e8e79c584db855168f8c87839480469a4d2498b475674411d2a425e3d0.webp",
         },
     ],

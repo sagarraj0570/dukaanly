@@ -44,6 +44,8 @@ const CartButton = () => {
 
 export const CustomerLayout = () => {
   const { user, logout } = useAuthStore()
+  const { data: cartData } = useCart()
+  const totalCartUnits = cartData?.items?.reduce((total, item) => total + item.quantity, 0) || 0
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -119,6 +121,7 @@ export const CustomerLayout = () => {
   }
 
   const isOrdersActive = location.pathname.startsWith('/customer/orders')
+  const isStorePage = location.pathname.startsWith('/customer/shops/')
 
   return (
     <div className="flex flex-col min-h-screen bg-paper text-ink">
@@ -172,7 +175,7 @@ export const CustomerLayout = () => {
               {isLocationPopoverOpen && (
                 <div
                   role="menu"
-                  className="absolute left-0 top-full mt-2 w-72 rounded-[14px] border border-border bg-surface p-2 shadow-lg z-50 text-xs animate-in fade-in-50 zoom-in-95 duration-100"
+                  className="absolute left-0 top-full mt-2 w-[calc(100vw-32px)] max-w-xs sm:w-72 rounded-[14px] border border-border bg-surface p-2 shadow-lg z-50 text-xs animate-in fade-in-50 zoom-in-95 duration-100"
                 >
                   <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-ink-soft">
                     Delivery Location
@@ -247,16 +250,17 @@ export const CustomerLayout = () => {
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search shops or products"
               aria-label="Search shops or products"
-              className="w-full h-10 pl-9 pr-7 sm:pr-8 rounded-full bg-sand/60 border border-border text-xs sm:text-sm text-ink placeholder:text-ink-soft focus:bg-surface focus:border-leaf focus:outline-none transition-colors"
+              enterKeyHint="search"
+              className="w-full h-10 pl-9 pr-10 rounded-full bg-sand/60 border border-border text-sm text-ink placeholder:text-ink-soft focus:bg-surface focus:border-leaf focus:outline-none transition-colors"
             />
             {searchInput && (
               <button
                 type="button"
                 onClick={clearHeaderSearch}
                 aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-soft hover:text-ink p-0.5 rounded-full cursor-pointer"
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-ink-soft hover:text-ink w-8 h-8 flex items-center justify-center rounded-full cursor-pointer"
               >
-                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             )}
           </form>
@@ -326,12 +330,72 @@ export const CustomerLayout = () => {
       </header>
 
       {/* Main Content */}
-      <main id="main-content" tabIndex={-1} className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-6 focus:outline-none">
+      <main id="main-content" tabIndex={-1} className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8 focus:outline-none">
         <Outlet />
       </main>
 
+      {/* Mobile Bottom Navigation Bar (below md: 768px) with safe-area padding */}
+      {!isStorePage && (
+        <nav
+          aria-label="Mobile Navigation"
+          className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border pb-safe flex items-center justify-around px-2 py-1 shadow-[0_-2px_12px_rgba(30,42,36,0.06)]"
+        >
+          <button
+            type="button"
+            onClick={() => navigate('/customer')}
+            className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 rounded-xl text-xs font-medium cursor-pointer transition-colors ${
+              location.pathname === '/customer' ? 'text-leaf font-bold' : 'text-ink-soft hover:text-ink'
+            }`}
+          >
+            <Store className="h-5 w-5 mb-0.5" />
+            <span className="text-[10px]">Shops</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/customer/orders')}
+            className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 rounded-xl text-xs font-medium cursor-pointer transition-colors ${
+              isOrdersActive ? 'text-leaf font-bold' : 'text-ink-soft hover:text-ink'
+            }`}
+          >
+            <Package className="h-5 w-5 mb-0.5" />
+            <span className="text-[10px]">Orders</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsAiAssistantOpen(true)}
+            className="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 rounded-xl text-xs font-medium cursor-pointer text-turmeric-ink hover:text-turmeric"
+          >
+            <div className="relative">
+              <Sparkles className="h-5 w-5 mb-0.5 text-turmeric" />
+              <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-turmeric animate-pulse" />
+            </div>
+            <span className="text-[10px]">AI Help</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/customer/cart')}
+            className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 rounded-xl text-xs font-medium cursor-pointer transition-colors ${
+              location.pathname === '/customer/cart' ? 'text-leaf font-bold' : 'text-ink-soft hover:text-ink'
+            }`}
+          >
+            <div className="relative">
+              <ShoppingCart className="h-5 w-5 mb-0.5" />
+              {totalCartUnits > 0 && (
+                <span className="absolute -top-1.5 -right-2 px-1.5 py-0.2 rounded-full bg-turmeric text-white text-[9px] font-bold num">
+                  {totalCartUnits}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px]">Cart</span>
+          </button>
+        </nav>
+      )}
+
       {/* Customer Footer */}
-      <footer className="border-t border-border bg-surface mt-auto">
+      <footer className="border-t border-border bg-surface mt-auto hidden md:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-ink-soft">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-leaf flex items-center justify-center text-white shrink-0">

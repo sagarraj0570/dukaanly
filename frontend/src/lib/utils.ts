@@ -48,4 +48,17 @@ export const getDeliveryWsUrl = (deliveryId: string, token: string | null): stri
 
   const tokenParam = token ? `?token=${encodeURIComponent(token)}` : ''
   return `${wsBase}/ws/deliveries/${deliveryId}${tokenParam}`
+}
+
+export const isTestEntity = (name?: string | null, description?: string | null): boolean => {
+  if (!name && !description) return false
+  const combined = `${name || ''} ${description || ''}`.toLowerCase()
+  return (
+    combined.includes('systest') ||
+    combined.includes('(test)') ||
+    combined.includes('[test]') ||
+    combined.includes('system test') ||
+    combined.includes('for run st_') ||
+    (name ? name.toLowerCase().startsWith('st_') : false)
+  )
 };

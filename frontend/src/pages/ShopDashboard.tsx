@@ -698,13 +698,13 @@ export const ShopDashboard = () => {
                       </span>
                     </div>
 
-                    {/* Large primary action buttons with >= 44px touch targets */}
-                    <div className="flex items-center gap-2 flex-wrap">
+                    {/* Full-width 48px primary action buttons on mobile, inline on tablet/desktop */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
                       {order.status === 'pending' && (
                         <>
                           <Button
                             size="lg"
-                            className="min-h-[44px] px-5 rounded-xl bg-leaf hover:bg-leaf/90 text-white text-sm font-semibold flex-1 sm:flex-none cursor-pointer"
+                            className="min-h-[48px] h-12 px-5 rounded-xl bg-leaf hover:bg-leaf/90 text-white text-sm font-semibold w-full sm:w-auto cursor-pointer"
                             onClick={() =>
                               updateOrderStatus.mutate({
                                 orderId: order.id,
@@ -718,7 +718,7 @@ export const ShopDashboard = () => {
                           <Button
                             variant="outline"
                             size="lg"
-                            className="min-h-[44px] px-4 rounded-xl text-sm text-brick-ink border-border hover:bg-brick-tint/20 font-semibold cursor-pointer"
+                            className="min-h-[48px] h-12 px-4 rounded-xl text-sm text-brick-ink border-border hover:bg-brick-tint/20 font-semibold w-full sm:w-auto cursor-pointer"
                             onClick={() => {
                               const reason = window.prompt('Reason for rejecting this order:')
                               if (!reason || !reason.trim()) return
@@ -736,7 +736,7 @@ export const ShopDashboard = () => {
                       {order.status === 'confirmed' && (
                         <Button
                           size="lg"
-                          className="min-h-[44px] px-6 rounded-xl bg-leaf hover:bg-leaf/90 text-white text-sm font-semibold flex-1 sm:flex-none cursor-pointer"
+                          className="min-h-[48px] h-12 px-6 rounded-xl bg-leaf hover:bg-leaf/90 text-white text-sm font-semibold w-full sm:w-auto cursor-pointer"
                           onClick={() =>
                             updateOrderStatus.mutate({
                               orderId: order.id,
@@ -755,7 +755,7 @@ export const ShopDashboard = () => {
                             <Button
                               variant="outline"
                               size="lg"
-                              className="min-h-[44px] px-4 rounded-xl border-border bg-surface text-ink hover:bg-sand text-xs font-semibold gap-1.5 cursor-pointer"
+                              className="min-h-[48px] h-12 px-4 rounded-xl border-border bg-surface text-ink hover:bg-sand text-xs font-semibold gap-1.5 w-full sm:w-auto cursor-pointer"
                               onClick={() => {
                                 setPrepModalDeliveryId(order.delivery!.id)
                                 setPrepMinutes(10)
@@ -763,12 +763,12 @@ export const ShopDashboard = () => {
                               }}
                             >
                               <Clock className="h-3.5 w-3.5 text-ink-soft" />
-                              Prep Time
+                              Adjust Prep Time
                             </Button>
                           )}
                           <Button
                             size="lg"
-                            className="min-h-[44px] px-6 rounded-xl bg-leaf hover:bg-leaf/90 text-white text-sm font-semibold flex-1 sm:flex-none cursor-pointer"
+                            className="min-h-[48px] h-12 px-6 rounded-xl bg-leaf hover:bg-leaf/90 text-white text-sm font-semibold w-full sm:w-auto cursor-pointer"
                             onClick={() =>
                               updateOrderStatus.mutate({
                                 orderId: order.id,

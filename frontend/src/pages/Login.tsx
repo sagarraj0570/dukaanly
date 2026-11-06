@@ -207,8 +207,8 @@ export const Login = () => {
               </Link>
             </div>
 
-            {/* Headline and Narrative */}
-            <div className="pt-4 lg:pt-16 space-y-3">
+            {/* Headline and Narrative (Desktop only for compact brand header on mobile) */}
+            <div className="hidden lg:block pt-16 space-y-3">
               <h1 className="font-display text-2xl sm:text-[34px] sm:leading-[42px] font-semibold text-ink tracking-[-0.01em]">
                 Aapki apni dukaan, ab ghar tak
               </h1>
@@ -217,8 +217,8 @@ export const Login = () => {
               </p>
             </div>
 
-            {/* Customer Value Chips */}
-            <div className="flex flex-wrap gap-2 pt-2">
+            {/* Customer Value Chips (Desktop only) */}
+            <div className="hidden lg:flex flex-wrap gap-2 pt-2">
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[8px] bg-surface border border-border text-xs font-medium text-ink">
                 Real shops, real prices
               </span>
@@ -390,6 +390,7 @@ export const Login = () => {
                       onChange={e => setEmail(e.target.value)}
                       required
                       autoComplete="email"
+                      enterKeyHint="next"
                     />
                   </div>
                 </div>
@@ -454,6 +455,7 @@ export const Login = () => {
                       required
                       minLength={isRegister ? 8 : undefined}
                       autoComplete={isRegister ? 'new-password' : 'current-password'}
+                      enterKeyHint="go"
                     />
                     <button
                       type="button"

@@ -76,7 +76,7 @@ export const RiderDashboard = () => {
     deliveries?.filter((d) => ['delivered', 'cancelled'].includes(d.status)) || []
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8 space-y-5">
+    <div className="w-full max-w-xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4">
       <h1 className="sr-only">Rider Dispatch Console</h1>
 
       {/* Large On Duty / Off Duty Switch Card at the top */}
@@ -125,19 +125,23 @@ export const RiderDashboard = () => {
               aria-label={profile?.is_available ? 'Go Offline' : 'Go Online'}
               onClick={handleToggleAvailability}
               disabled={isUpdatingAvailability}
-              className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf focus-visible:ring-offset-2 ${
-                profile?.is_available ? 'bg-leaf' : 'bg-border-strong'
-              } ${isUpdatingAvailability ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`relative inline-flex items-center justify-center min-w-[48px] min-h-[44px] cursor-pointer rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf focus-visible:ring-offset-2 ${
+                isUpdatingAvailability ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               <span className="sr-only">
                 {profile?.is_available ? 'Go Offline' : 'Go Online'}
               </span>
-              <span
-                aria-hidden="true"
-                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-surface shadow-xs ring-0 transition duration-200 ease-in-out ${
-                  profile?.is_available ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
+              <span className={`inline-flex h-7 w-12 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                profile?.is_available ? 'bg-leaf' : 'bg-border-strong'
+              }`}>
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-surface shadow-xs ring-0 transition duration-200 ease-in-out ${
+                    profile?.is_available ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </span>
             </button>
           </div>
         </div>

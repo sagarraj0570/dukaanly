@@ -187,6 +187,15 @@ CANONICAL_SEED_DATA: Dict[str, Dict[str, Any]] = {
         "fallback_attribution": "Wikimedia Commons / Miansari66",
         "fallback_source_url": "https://commons.wikimedia.org/wiki/File:Garam_Masala_powder.jpg",
     },
+    "catch kashmiri chilli powder 100g": {
+        "barcode": "8901192000025",
+        "brand": "Catch",
+        "category": "Groceries",
+        "fallback_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Chili_powder_in_bowl.jpg/640px-Chili_powder_in_bowl.jpg",
+        "fallback_license": "CC BY-SA 4.0",
+        "fallback_attribution": "Wikimedia Commons",
+        "fallback_source_url": "https://commons.wikimedia.org/wiki/File:Chili_powder_in_bowl.jpg",
+    },
     "catch kashmiri chilli powder 100g (zero stock sample)": {
         "barcode": "8901192000025",
         "brand": "Catch",
@@ -326,6 +335,15 @@ CANONICAL_SEED_DATA: Dict[str, Dict[str, Any]] = {
     },
     "amul taaza homogenised toned milk 1l": {
         "barcode": "8901262020015",
+        "brand": "Amul",
+        "category": "Dairy",
+        "fallback_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Milk_glass.jpg/640px-Milk_glass.jpg",
+        "fallback_license": "CC BY-SA 3.0",
+        "fallback_attribution": "Wikimedia Commons / Stefan Kuhn",
+        "fallback_source_url": "https://commons.wikimedia.org/wiki/File:Milk_glass.jpg",
+    },
+    "amul moti toned long life milk 450ml": {
+        "barcode": "8901262020084",
         "brand": "Amul",
         "category": "Dairy",
         "fallback_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Milk_glass.jpg/640px-Milk_glass.jpg",

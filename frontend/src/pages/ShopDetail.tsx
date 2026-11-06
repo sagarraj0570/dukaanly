@@ -361,9 +361,9 @@ export const ShopDetail = () => {
             )}
           </aside>
 
-          {/* Mobile Sticky Bottom Bar: View cart · N items · ₹total */}
+          {/* Mobile Sticky Bottom Bar: View cart · N items · ₹total (56px tall with safe-area padding) */}
           {cartItemCount > 0 && (
-            <div className="fixed bottom-0 inset-x-0 bg-surface border-t border-border p-3.5 flex items-center justify-between z-30 lg:hidden shadow-[0_-4px_16px_rgba(30,42,36,0.08)]">
+            <div className="fixed bottom-0 inset-x-0 bg-surface/98 backdrop-blur-md border-t border-border px-4 py-3 pb-safe flex items-center justify-between z-40 lg:hidden shadow-[0_-4px_16px_rgba(30,42,36,0.1)] min-h-[56px]">
               <div className="flex flex-col">
                 <span className="text-xs text-ink-soft">
                   <span className="num font-semibold text-ink">{cartItemCount}</span> {cartItemCount === 1 ? 'item' : 'items'} in cart
@@ -376,7 +376,7 @@ export const ShopDetail = () => {
                 onClick={() => navigate('/customer/checkout')}
                 variant="default"
                 size="sm"
-                className="h-10 px-4 font-semibold text-xs rounded-[10px]"
+                className="h-11 min-h-[44px] px-5 font-semibold text-xs rounded-[10px] cursor-pointer"
               >
                 View cart · <span className="num">{cartItemCount}</span> items · <span className="num">{formatCurrency(cart?.total_amount || 0)}</span>
               </Button>

@@ -173,7 +173,8 @@ async def setup_shopping_assistant_fixtures(async_client: AsyncClient):
             is_active=True,
             is_orderable=False,
             verification_status=ShopVerificationStatus.discovered,
-            source="osm",
+            source="test",
+            source_id=f"test:unv:{uuid.uuid4().hex[:8]}",
         )
         session.add(unverified_shop)
         await session.commit()

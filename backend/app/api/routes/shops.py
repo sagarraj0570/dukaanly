@@ -13,7 +13,7 @@ from app.schemas.shop import (
     DeliveryEligibilityResponse,
 )
 from app.services import shop as shop_service
-from app.api.dependencies import get_current_user, require_role
+from app.api.dependencies import get_current_user, get_current_user_optional, require_role
 
 router = APIRouter()
 
@@ -36,7 +36,9 @@ async def list_shops(
     radius_meters: int = Query(5000, ge=100, le=10000, description="Search radius in meters (100m to 10km)"),
     delivery_only: bool = Query(False, description="Filter only delivery-eligible shops"),
     verified_only: bool = Query(False, description="Filter only verified partner shops with registered owners"),
-    db: AsyncSession = Depends(get_db)
+    include_test: bool = Query(False, description="Whether to include test shops (internal/testing only)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User | None = Depends(get_current_user_optional)
 ):
     """
     List active shops.
@@ -47,6 +49,13 @@ async def list_shops(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Both latitude and longitude must be provided together for location-based search."
         )
+    is_test_user = bool(
+        current_user
+        and current_user.email
+        and (current_user.email.startswith("systest-") or "st_" in current_user.email)
+    )
+    effective_include_test = include_test or is_test_user
+
     shops, total = await shop_service.get_shops(
         db=db,
         page=page,
@@ -56,7 +65,8 @@ async def list_shops(
         longitude=longitude,
         radius_meters=radius_meters,
         delivery_only=delivery_only,
-        verified_only=verified_only
+        verified_only=verified_only,
+        include_test=effective_include_test
     )
     return {
         "items": shops,

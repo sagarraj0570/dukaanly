@@ -232,11 +232,11 @@ export const ProductDetail = () => {
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                     disabled={quantity <= 1 || !product.is_active}
                     aria-label="Decrease quantity"
-                    className="w-10 h-full flex items-center justify-center text-text-primary hover:bg-primary-50 disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                    className="w-11 min-w-[44px] h-full flex items-center justify-center text-text-primary hover:bg-primary-50 disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 cursor-pointer"
                   >
                     <Minus className="h-4 w-4" aria-hidden="true" />
                   </button>
-                  <span role="status" aria-live="polite" className="w-10 text-center text-sm font-bold text-text-primary">
+                  <span role="status" aria-live="polite" className="w-10 text-center text-sm font-bold text-text-primary num">
                     {quantity}
                   </span>
                   <button
@@ -244,7 +244,7 @@ export const ProductDetail = () => {
                     onClick={() => setQuantity((q) => q + 1)}
                     disabled={!product.is_active}
                     aria-label="Increase quantity"
-                    className="w-10 h-full flex items-center justify-center text-text-primary hover:bg-primary-50 disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                    className="w-11 min-w-[44px] h-full flex items-center justify-center text-text-primary hover:bg-primary-50 disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 cursor-pointer"
                   >
                     <Plus className="h-4 w-4" aria-hidden="true" />
                   </button>

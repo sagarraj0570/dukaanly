@@ -115,7 +115,7 @@ export const LocationModal = ({ isOpen, onClose }: LocationModalProps) => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="location-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(30,42,36,0.45)] animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-[rgba(30,42,36,0.45)] backdrop-blur-xs animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -123,10 +123,15 @@ export const LocationModal = ({ isOpen, onClose }: LocationModalProps) => {
       <div
         ref={modalRef}
         tabIndex={-1}
-        className="w-full max-w-lg bg-surface rounded-[14px] shadow-[0_8px_24px_rgba(30,42,36,0.12)] border border-border overflow-hidden focus:outline-none animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
+        className="w-full max-w-lg bg-surface rounded-t-[20px] sm:rounded-[14px] shadow-2xl border-t sm:border border-border overflow-hidden focus:outline-none animate-in zoom-in-95 duration-200 flex flex-col max-h-[90dvh] sm:max-h-[85vh] overscroll-contain pb-safe sm:pb-0"
       >
+        {/* Mobile Drag Handle */}
+        <div className="pt-2 pb-1 sm:hidden flex justify-center bg-surface-alt">
+          <div className="w-10 h-1 rounded-full bg-border-strong/50" />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4.5 border-b border-border bg-surface-alt shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4.5 border-b border-border bg-surface-alt shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-xl bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-700">
               <MapPin className="h-5 w-5" aria-hidden="true" />
@@ -144,7 +149,7 @@ export const LocationModal = ({ isOpen, onClose }: LocationModalProps) => {
             type="button"
             onClick={onClose}
             aria-label="Close location settings"
-            className="h-8 w-8 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-black/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-black/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 cursor-pointer"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>

@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { DirectoryStoreModal } from '@/components/DirectoryStoreModal'
 import { resolveShopType } from '@/lib/shopTypeClassification'
+import { isTestEntity } from '@/lib/utils'
 
 export const formatStoreName = (name: string): string => {
   if (!name) return ''
@@ -329,6 +330,14 @@ const InteractiveStoresMapView = ({
       layerGroupRef.current = layerGroup
       mapInstanceRef.current = map
 
+      const handleResizeOrOrientation = () => {
+        setTimeout(() => {
+          mapInstanceRef.current?.invalidateSize()
+        }, 150)
+      }
+      window.addEventListener('orientationchange', handleResizeOrOrientation)
+      window.addEventListener('resize', handleResizeOrOrientation)
+
       setTimeout(() => {
         map.invalidateSize()
       }, 100)
@@ -345,6 +354,8 @@ const InteractiveStoresMapView = ({
       }
 
       return () => {
+        window.removeEventListener('orientationchange', handleResizeOrOrientation)
+        window.removeEventListener('resize', handleResizeOrOrientation)
         if (resizeObserver) {
           resizeObserver.disconnect()
         }
@@ -654,6 +665,9 @@ export const NearbyDiscoverySection = ({
   // Category chips filtering + Hide non-neighbourhood places (fashion, furniture) by default
   const filteredItems = useMemo(() => {
     return rawItems.filter((item) => {
+      if (isTestEntity(item.name, item.address)) {
+        return false
+      }
       const cat = (item.category || '').toLowerCase()
       const name = (item.name || '').toLowerCase()
 

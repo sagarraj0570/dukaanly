@@ -396,6 +396,26 @@ export const CustomerCart = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile Sticky Bottom Bar for instant Proceed to Checkout (56px tall with safe-area padding) */}
+      <div className="fixed bottom-0 inset-x-0 bg-surface/98 backdrop-blur-md border-t border-border px-4 py-3 pb-safe flex items-center justify-between z-40 lg:hidden shadow-[0_-4px_16px_rgba(30,42,36,0.1)] min-h-[56px]">
+        <div className="flex flex-col">
+          <span className="text-xs text-ink-soft">
+            <span className="num font-semibold text-ink">{totalUnits}</span> {totalUnits === 1 ? 'item' : 'items'}
+          </span>
+          <span className="num font-bold text-base text-ink">
+            {formatCurrency(cart.total_amount)}
+          </span>
+        </div>
+        <Button
+          size="sm"
+          className="h-11 min-h-[44px] px-5 rounded-[12px] font-semibold text-xs gap-1.5 cursor-pointer"
+          onClick={() => navigate('/customer/checkout')}
+        >
+          <span>Proceed to Checkout</span>
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Button>
+      </div>
     </div>
   )
 }

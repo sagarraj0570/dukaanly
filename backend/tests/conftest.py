@@ -58,7 +58,14 @@ async def cleanup_test_shops():
                 s for s in all_shops
                 if s.name not in DEMO_SHOP_NAMES
                 and s.source != "demo"
-                and (s.source not in ("osm", "geoapify_osm", "gmap", "geoapify") or (s.source_id and s.source_id not in PERMANENT_SOURCE_IDS and not s.source_id.startswith("osm:node:94820")))
+                and (
+                    s.name.startswith("SYSTEST")
+                    or "(Test)" in s.name
+                    or "[Test]" in s.name
+                    or s.name.startswith("st_")
+                    or (s.description and "system test" in s.description.lower())
+                    or (s.source not in ("osm", "geoapify_osm", "gmap", "geoapify") or (s.source_id and s.source_id not in PERMANENT_SOURCE_IDS and not s.source_id.startswith("osm:node:94820")))
+                )
             ]
             shop_ids = [s.id for s in test_shops]
 
@@ -118,9 +125,18 @@ async def cleanup_test_shops():
 
                 # Clean up transient test products added dynamically during tests
                 temp_prods = (await session.execute(
-                    select(Product.id).where(Product.shop_id.in_(demo_shop_ids), Product.name.like("ZeroStock%"))
+                    select(Product.id).where(
+                        Product.name.like("ZeroStock%")
+                        | Product.name.like("Unverified Product%")
+                        | Product.name.like("%(Test)%")
+                        | Product.name.like("%[Test]%")
+                    )
                 )).scalars().all()
                 if temp_prods:
+                    await session.execute(delete(InventoryReservation).where(InventoryReservation.order_id.in_(
+                        select(OrderItem.order_id).where(OrderItem.product_id.in_(temp_prods))
+                    )))
+                    await session.execute(delete(OrderItem).where(OrderItem.product_id.in_(temp_prods)))
                     await session.execute(delete(Inventory).where(Inventory.product_id.in_(temp_prods)))
                     await session.execute(delete(CartItem).where(CartItem.product_id.in_(temp_prods)))
                     await session.execute(delete(Product).where(Product.id.in_(temp_prods)))

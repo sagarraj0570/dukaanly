@@ -30,6 +30,7 @@ import {
   DELIVERY_LIMIT_METERS,
   haversineDistanceKm,
 } from '@/store/useLocationStore'
+import { isTestEntity } from '@/lib/utils'
 
 const ShopCardSkeleton = () => (
   <div className="bg-surface border border-border rounded-[14px] overflow-hidden animate-pulse flex flex-col">
@@ -116,10 +117,12 @@ export const CustomerDashboard = () => {
     [discoveryData?.items]
   )
 
-  // Filter out non-neighbourhood places so counts agree
+  // Filter out non-neighbourhood places so counts agree, and exclude any test artifacts
   const filteredDiscoveryItems = useMemo(() => {
     return rawDiscoveryItems.filter(
-      (item) => !isNonNeighbourhoodStore(item.name, item.category)
+      (item) =>
+        !isNonNeighbourhoodStore(item.name, item.category) &&
+        !isTestEntity(item.name, item.address)
     )
   }, [rawDiscoveryItems])
 
@@ -130,7 +133,11 @@ export const CustomerDashboard = () => {
     setSearchParams({})
   }
 
-  const shops = data?.items || []
+  const shops = useMemo(() => {
+    return (data?.items || []).filter(
+      (shop) => !isTestEntity(shop.name, shop.description)
+    )
+  }, [data?.items])
 
   // Check shop delivery eligibility based on active location and shared limit constant
   const isShopEligibleForDelivery = (shop: (typeof shops)[0]): boolean => {

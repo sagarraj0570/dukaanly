@@ -5,6 +5,7 @@ import { ErrorState } from './ErrorState'
 import { EmptyState } from './EmptyState'
 import { Button } from './ui/button'
 import { ChevronLeft, ChevronRight, PackageSearch, Search, X } from 'lucide-react'
+import { isTestEntity } from '@/lib/utils'
 
 interface ProductCatalogProps {
   shopId: string
@@ -19,7 +20,9 @@ export const ProductCatalog = ({ shopId }: ProductCatalogProps) => {
 
   const { data, isLoading, isError, error, refetch } = useShopProducts(shopId, page, size)
 
-  const items = data?.items || []
+  const items = useMemo(() => {
+    return (data?.items || []).filter((p) => !isTestEntity(p.name, p.description))
+  }, [data?.items])
 
   // Extract unique categories from items
   const availableCategories = useMemo(() => {
@@ -110,7 +113,7 @@ export const ProductCatalog = ({ shopId }: ProductCatalogProps) => {
         <div
           role="tablist"
           aria-label="Product categories"
-          className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-none"
+          className="flex items-center gap-3 scroll-snap-x overscroll-contain pb-1"
         >
           {availableCategories.map((cat) => {
             const isActive = selectedCat === cat
@@ -121,9 +124,9 @@ export const ProductCatalog = ({ shopId }: ProductCatalogProps) => {
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => setSelectedCat(cat)}
-                className={`pb-2 text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap -mb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf cursor-pointer shrink-0 ${
+                className={`snap-child pb-2.5 pt-1 px-1 text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap -mb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf cursor-pointer shrink-0 min-h-[44px] flex items-center ${
                   isActive
-                    ? 'border-b-2 border-leaf text-ink'
+                    ? 'border-b-2 border-leaf text-ink font-bold'
                     : 'border-b-2 border-transparent text-ink-soft hover:text-ink'
                 }`}
               >
@@ -144,16 +147,17 @@ export const ProductCatalog = ({ shopId }: ProductCatalogProps) => {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search products in this shop..."
             aria-label="Search products in this shop"
-            className="w-full h-10 pl-10 pr-8 rounded-full bg-surface border border-border text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 transition-colors"
+            enterKeyHint="search"
+            className="w-full h-11 pl-10 pr-9 rounded-full bg-surface border border-border text-sm text-text-primary placeholder:text-text-muted focus:border-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 transition-colors"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-full"
+              className="absolute right-1 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary w-8 h-8 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-full cursor-pointer"
             >
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>

@@ -16,7 +16,13 @@ async def clean_test_fixtures():
         stmt = select(Shop.id, Shop.name).where(
             Shop.name.in_([
                 "Inactive Kirana", "WS Shop", "Broadcast Shop"
-            ]) | Shop.name.like("Claimed Protection Store%")
+            ])
+            | Shop.name.like("Claimed Protection Store%")
+            | Shop.name.ilike("SYSTEST%")
+            | Shop.name.ilike("%(Test)%")
+            | Shop.name.ilike("%[Test]%")
+            | Shop.name.like("st\\_%")
+            | Shop.description.ilike("%system test%")
         )
         res = await session.execute(stmt)
         test_shops = res.all()

@@ -90,14 +90,14 @@ export const DirectoryStoreModal = ({
       aria-modal="true"
       aria-labelledby="directory-store-modal-title"
       data-testid="directory-store-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[rgba(30,42,36,0.45)] animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-[rgba(30,42,36,0.45)] backdrop-blur-xs animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
       <div
         ref={modalRef}
-        className="relative w-full max-w-2xl max-h-[92vh] overflow-hidden rounded-[14px] bg-surface border border-border shadow-[0_8px_24px_rgba(30,42,36,0.12)] flex flex-col animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-2xl max-h-[90dvh] sm:max-h-[92vh] overflow-hidden rounded-t-[20px] sm:rounded-[14px] bg-surface border-t sm:border border-border shadow-2xl flex flex-col overscroll-contain pb-safe sm:pb-0 animate-in zoom-in-95 duration-200"
       >
         {/* Cover Photo Banner */}
         <div className="relative h-44 sm:h-56 w-full bg-sand overflow-hidden shrink-0">

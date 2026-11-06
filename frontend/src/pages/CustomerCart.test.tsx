@@ -101,7 +101,7 @@ describe('CustomerCart', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText('2')).toBeTruthy() // The badge with quantity 2
+      expect(screen.getAllByText('2').length).toBeGreaterThanOrEqual(1) // The badge with quantity 2
     })
   })
 })

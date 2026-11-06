@@ -91,8 +91,8 @@ export const RiderLayout = () => {
         </div>
       </header>
 
-      {/* Main Container */}
-      <main id="main-content" tabIndex={-1} className="flex-1 w-full max-w-4xl mx-auto pt-5 pb-24 md:pb-10 px-4 sm:px-6 focus:outline-none">
+      {/* Main Container: Centered max-w-xl on larger screens, single column on mobile */}
+      <main id="main-content" tabIndex={-1} className="flex-1 w-full max-w-xl mx-auto pt-5 pb-24 md:pb-10 px-4 sm:px-6 focus:outline-none">
         <Outlet />
       </main>
 

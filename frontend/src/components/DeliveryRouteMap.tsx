@@ -88,6 +88,14 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
         scrollWheelZoom: false,
       }).setView([initialLat, initialLng], 14)
 
+      // Only enable scroll wheel zoom when focused to prevent accidental scroll hijacking
+      map.on('focus', () => {
+        map.scrollWheelZoom.enable()
+      })
+      map.on('blur', () => {
+        map.scrollWheelZoom.disable()
+      })
+
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
@@ -96,6 +104,14 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
       const layerGroup = L.layerGroup().addTo(map)
       layerGroupRef.current = layerGroup
       mapInstanceRef.current = map
+
+      const handleResizeOrOrientation = () => {
+        setTimeout(() => {
+          mapInstanceRef.current?.invalidateSize()
+        }, 150)
+      }
+      window.addEventListener('orientationchange', handleResizeOrOrientation)
+      window.addEventListener('resize', handleResizeOrOrientation)
 
       setTimeout(() => {
         map.invalidateSize()
@@ -113,6 +129,8 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
       }
 
       return () => {
+        window.removeEventListener('orientationchange', handleResizeOrOrientation)
+        window.removeEventListener('resize', handleResizeOrOrientation)
         if (resizeObserver) {
           resizeObserver.disconnect()
         }
@@ -381,8 +399,8 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
       <div className="relative">
         <div
           ref={mapContainerRef}
-          className="h-64 sm:h-80 w-full z-0 bg-border"
-          style={{ minHeight: '280px' }}
+          className="h-[40vh] h-[40dvh] min-h-[260px] sm:h-80 w-full z-0 bg-border overscroll-contain"
+          style={{ minHeight: '260px' }}
         />
 
         {/* Loading Overlay */}

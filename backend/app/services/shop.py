@@ -151,7 +151,8 @@ async def get_shops(
     longitude: float | None = None,
     radius_meters: int = 5000,
     delivery_only: bool = False,
-    verified_only: bool = False
+    verified_only: bool = False,
+    include_test: bool = False
 ) -> Tuple[List[Dict[str, Any]], int]:
     DEFAULT_DELIVERY_RADIUS_METERS = 5000
     PREFERRED_NEARBY_RADIUS_METERS = 3000
@@ -179,6 +180,15 @@ async def get_shops(
             stmt = stmt.where(Shop.is_orderable == True).where(func.ST_DWithin(shop_geog, user_geog, DEFAULT_DELIVERY_RADIUS_METERS))
         if verified_only:
             stmt = stmt.where(Shop.verification_status == ShopVerificationStatus.verified, Shop.owner_id.is_not(None))
+        if not include_test:
+            stmt = stmt.where(
+                ~Shop.name.ilike("SYSTEST%"),
+                ~Shop.name.ilike("%(Test)%"),
+                ~Shop.name.ilike("%[Test]%"),
+                ~Shop.name.like("st\\_%"),
+                ~Shop.description.ilike("%system test%"),
+                ~Shop.description.ilike("%for run st\\_%"),
+            )
 
         # Total count
         count_stmt = select(func.count()).select_from(stmt.subquery())
@@ -232,6 +242,15 @@ async def get_shops(
         stmt = stmt.where(Shop.is_orderable == True)
     if verified_only:
         stmt = stmt.where(Shop.verification_status == ShopVerificationStatus.verified, Shop.owner_id.is_not(None))
+    if not include_test:
+        stmt = stmt.where(
+            ~Shop.name.ilike("SYSTEST%"),
+            ~Shop.name.ilike("%(Test)%"),
+            ~Shop.name.ilike("%[Test]%"),
+            ~Shop.name.like("st\\_%"),
+            ~Shop.description.ilike("%system test%"),
+            ~Shop.description.ilike("%for run st\\_%"),
+        )
         
     count_stmt = select(func.count()).select_from(stmt.subquery())
     count_result = await db.execute(count_stmt)

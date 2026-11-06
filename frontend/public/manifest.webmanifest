@@ -1,0 +1,17 @@
+{
+  "name": "Dukaanly — Hyperlocal Marketplace",
+  "short_name": "Dukaanly",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F6F1E7",
+  "theme_color": "#F6F1E7",
+  "description": "Hyperlocal neighbourhood marketplace connecting customers, local shops, and delivery partners in Patna.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "48x48 72x72 96x96 128x128 192x192 256x256 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

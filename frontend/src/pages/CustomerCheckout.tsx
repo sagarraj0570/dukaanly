@@ -215,6 +215,7 @@ export const CustomerCheckout = () => {
                   onChange={(e) => setDeliveryNotes(e.target.value)}
                   placeholder="e.g. Ring bell twice, leave with society guard, near landmark..."
                   rows={3}
+                  enterKeyHint="done"
                   className="w-full p-3 border border-border-strong rounded-[12px] text-sm bg-surface text-ink placeholder:text-ink-soft focus:outline-none focus:border-leaf focus:ring-2 focus:ring-leaf/30 transition-colors"
                 />
               </div>
@@ -338,8 +339,8 @@ export const CustomerCheckout = () => {
         </div>
       </div>
 
-      {/* Mobile Sticky Bottom Bar */}
-      <div className="fixed bottom-0 inset-x-0 bg-surface border-t border-border p-3.5 flex items-center justify-between z-30 lg:hidden shadow-[0_-4px_16px_rgba(30,42,36,0.08)]">
+      {/* Mobile Sticky Bottom Bar (56px tall with safe-area padding) */}
+      <div className="fixed bottom-0 inset-x-0 bg-surface/98 backdrop-blur-md border-t border-border px-4 py-3 pb-safe flex items-center justify-between z-40 lg:hidden shadow-[0_-4px_16px_rgba(30,42,36,0.1)] min-h-[56px]">
         <div className="flex flex-col">
           <span className="text-xs text-ink-soft">
             Total Payable
@@ -352,7 +353,7 @@ export const CustomerCheckout = () => {
           onClick={handleCheckout}
           disabled={isCheckingOut}
           size="sm"
-          className="h-10 px-5 font-semibold text-xs rounded-[10px]"
+          className="h-11 min-h-[44px] px-6 font-semibold text-xs rounded-[10px] cursor-pointer"
         >
           {isCheckingOut ? 'Processing order…' : 'Place Order'}
         </Button>

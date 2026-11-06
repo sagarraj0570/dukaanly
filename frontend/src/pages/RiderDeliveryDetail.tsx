@@ -390,33 +390,33 @@ export const RiderDeliveryDetail = () => {
               {delivery.status === 'assigned' && (
                 <Button
                   size="lg"
-                  className="w-full min-h-[48px] font-semibold gap-2 bg-leaf hover:bg-leaf/90 text-white rounded-xl cursor-pointer"
+                  className="w-full min-h-[56px] h-14 text-base font-semibold gap-2 bg-leaf hover:bg-leaf/90 text-white rounded-xl cursor-pointer shadow-xs"
                   onClick={() => handleStatusTransition('picked_up')}
                   disabled={isUpdatingStatus}
                 >
-                  <Package className="h-4 w-4" aria-hidden="true" /> Mark as Picked Up
+                  <Package className="h-5 w-5" aria-hidden="true" /> Mark as Picked Up
                 </Button>
               )}
 
               {delivery.status === 'picked_up' && (
                 <Button
                   size="lg"
-                  className="w-full min-h-[48px] font-semibold bg-leaf hover:bg-leaf/90 text-white gap-2 rounded-xl cursor-pointer"
+                  className="w-full min-h-[56px] h-14 text-base font-semibold bg-leaf hover:bg-leaf/90 text-white gap-2 rounded-xl cursor-pointer shadow-xs"
                   onClick={() => handleStatusTransition('out_for_delivery')}
                   disabled={isUpdatingStatus}
                 >
-                  <Navigation className="h-4 w-4" aria-hidden="true" /> Start Delivery
+                  <Navigation className="h-5 w-5" aria-hidden="true" /> Start Delivery
                 </Button>
               )}
 
               {delivery.status === 'out_for_delivery' && (
                 <Button
                   size="lg"
-                  className="w-full min-h-[48px] font-semibold bg-leaf hover:bg-leaf/90 text-white gap-2 rounded-xl cursor-pointer"
+                  className="w-full min-h-[56px] h-14 text-base font-semibold bg-leaf hover:bg-leaf/90 text-white gap-2 rounded-xl cursor-pointer shadow-xs"
                   onClick={() => handleStatusTransition('delivered')}
                   disabled={isUpdatingStatus}
                 >
-                  <CheckCircle className="h-4 w-4" aria-hidden="true" /> Mark as Delivered
+                  <CheckCircle className="h-5 w-5" aria-hidden="true" /> Mark as Delivered
                 </Button>
               )}
 
