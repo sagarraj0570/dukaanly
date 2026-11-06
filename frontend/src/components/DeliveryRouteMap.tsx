@@ -19,6 +19,24 @@ interface DeliveryRouteMapProps {
   terminalStatus?: 'delivered' | 'cancelled' | null
 }
 
+const sanitizeRouteErrorMessage = (msg?: string): string => {
+  if (!msg) {
+    return 'Road route navigation temporarily unavailable. Real-time direct tracking remains active.'
+  }
+  const lower = msg.toLowerCase()
+  if (
+    lower.includes('status code') ||
+    lower.includes('504') ||
+    lower.includes('502') ||
+    lower.includes('500') ||
+    lower.includes('network error') ||
+    lower.includes('axioserror')
+  ) {
+    return 'Road route navigation temporarily unavailable. Real-time direct tracking remains active.'
+  }
+  return msg
+}
+
 export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
   route,
   liveRiderLocation,
@@ -32,6 +50,16 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
   isTerminal = false,
   terminalStatus = null,
 }) => {
+  const isTerminalResolved =
+    isTerminal ||
+    terminalStatus === 'cancelled' ||
+    terminalStatus === 'delivered' ||
+    route?.status === 'cancelled' ||
+    route?.status === 'delivered'
+  const resolvedTerminalStatus: 'delivered' | 'cancelled' | null =
+    terminalStatus ||
+    (route?.status === 'cancelled' ? 'cancelled' : route?.status === 'delivered' ? 'delivered' : null)
+
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const riderMarkerRef = useRef<L.Marker | null>(null)
@@ -71,15 +99,29 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
 
       setTimeout(() => {
         map.invalidateSize()
-      }, 150)
-    }
+      }, 100)
+      setTimeout(() => {
+        map.invalidateSize()
+      }, 300)
 
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
-        mapInstanceRef.current = null
-        layerGroupRef.current = null
-        riderMarkerRef.current = null
+      let resizeObserver: ResizeObserver | null = null
+      if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
+        resizeObserver = new ResizeObserver(() => {
+          map.invalidateSize()
+        })
+        resizeObserver.observe(mapContainerRef.current)
+      }
+
+      return () => {
+        if (resizeObserver) {
+          resizeObserver.disconnect()
+        }
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove()
+          mapInstanceRef.current = null
+          layerGroupRef.current = null
+          riderMarkerRef.current = null
+        }
       }
     }
   }, [])
@@ -237,8 +279,8 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className={`h-9 w-9 rounded-xl border flex items-center justify-center shrink-0 ${
-              isTerminal
-                ? terminalStatus === 'cancelled'
+              isTerminalResolved
+                ? resolvedTerminalStatus === 'cancelled'
                   ? 'bg-brick-tint text-brick-ink border-brick-ink/30'
                   : 'bg-sage-tint text-leaf border-leaf/30'
                 : 'bg-surface text-ink-soft border-border'
@@ -248,15 +290,15 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  {isTerminal
-                    ? terminalStatus === 'cancelled'
+                  {isTerminalResolved
+                    ? resolvedTerminalStatus === 'cancelled'
                       ? 'Delivery Cancelled'
                       : 'Delivery Completed'
                     : 'Road Route (OSRM)'}
                 </span>
-                {isTerminal ? (
-                  <StatusStamp tone={terminalStatus === 'cancelled' ? 'danger' : 'success'}>
-                    {terminalStatus === 'cancelled' ? 'Cancelled' : 'Delivered'}
+                {isTerminalResolved ? (
+                  <StatusStamp tone={resolvedTerminalStatus === 'cancelled' ? 'danger' : 'success'}>
+                    {resolvedTerminalStatus === 'cancelled' ? 'Cancelled' : 'Delivered'}
                   </StatusStamp>
                 ) : (
                   <>
@@ -274,9 +316,9 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
                 )}
               </div>
               <p className="text-sm font-semibold text-ink">
-                {isTerminal ? (
+                {isTerminalResolved ? (
                   <span className="text-xs text-ink-soft font-normal">
-                    {terminalStatus === 'cancelled'
+                    {resolvedTerminalStatus === 'cancelled'
                       ? 'Delivery was cancelled. Active route tracking ended.'
                       : 'Order delivered to destination.'}
                   </span>
@@ -297,7 +339,7 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
           </div>
 
           {/* Leg Status Pills or Retry Button */}
-          {!isTerminal && route && route.legs && route.legs.length > 0 ? (
+          {!isTerminalResolved && route && route.legs && route.legs.length > 0 ? (
             <div className="flex items-center gap-2 text-xs">
               {route.legs.map((leg, idx) => {
                 const isActive = route.active_leg_index === idx
@@ -323,7 +365,7 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
                 )
               })}
             </div>
-          ) : !isTerminal && isError && onRetry ? (
+          ) : !isTerminalResolved && isError && onRetry ? (
             <button
               onClick={onRetry}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-border text-ink hover:bg-sand transition cursor-pointer"
@@ -344,7 +386,7 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
         />
 
         {/* Loading Overlay */}
-        {!isTerminal && isLoading && !route && (
+        {!isTerminalResolved && isLoading && !route && (
           <div className="absolute inset-0 bg-sand/95 flex flex-col items-center justify-center p-6 text-center z-10">
             <Compass className="h-8 w-8 text-leaf animate-spin mb-2" />
             <p className="text-xs sm:text-sm font-semibold text-ink">Calculating road route and driving ETA via OSRM...</p>
@@ -353,14 +395,12 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
         )}
 
         {/* Error / Route Unavailable Banner Overlay */}
-        {!isTerminal && isError && !route && (
+        {!isTerminalResolved && isError && !route && (
           <div className="absolute inset-x-3 bottom-3 bg-surface border border-turmeric rounded-[12px] p-3 shadow-none z-10 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <AlertTriangle className="h-4 w-4 text-turmeric-ink shrink-0" />
               <p className="text-xs text-ink">
-                {errorMessage && !errorMessage.toLowerCase().includes('status code')
-                  ? errorMessage
-                  : 'Road route navigation temporarily unavailable. Real-time direct tracking remains active.'}
+                {sanitizeRouteErrorMessage(errorMessage)}
               </p>
             </div>
             {onRetry && (
@@ -386,13 +426,13 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-brick-ink" />
             <span>Dropoff</span>
           </span>
-          {!isTerminal && (route?.rider_location || liveRiderLocation) && (
+          {!isTerminalResolved && (route?.rider_location || liveRiderLocation) && (
             <span className="flex items-center gap-1.5">
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-ink-soft" />
               <span>Rider (Blue dashed = Pickup route)</span>
             </span>
           )}
-          {!isTerminal && (
+          {!isTerminalResolved && (
             <span className="flex items-center gap-1.5">
               <span className="inline-block h-1.5 w-4 rounded bg-leaf" />
               <span>Delivery Route</span>

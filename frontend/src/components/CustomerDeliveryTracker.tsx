@@ -62,23 +62,17 @@ export const CustomerDeliveryTracker = ({
   >('disconnected')
   const [wsDeliveryStatus, setWsDeliveryStatus] = useState<DeliveryStatus | null>(null)
 
-  const isCancelled =
+  const isCancelledBase =
     orderStatus === 'cancelled' ||
     delivery?.status === 'cancelled' ||
     wsDeliveryStatus === 'cancelled'
-  const isDelivered =
+  const isDeliveredBase =
     orderStatus === 'delivered' ||
     orderStatus === 'completed' ||
     delivery?.status === 'delivered' ||
     wsDeliveryStatus === 'delivered'
 
-  const liveStatus: DeliveryStatus = isCancelled
-    ? 'cancelled'
-    : isDelivered
-    ? 'delivered'
-    : wsDeliveryStatus ?? delivery?.status ?? 'pending'
-
-  const isTerminal = isCancelled || isDelivered
+  const isTerminalInitial = isCancelledBase || isDeliveredBase
 
   const [riderLocation, setRiderLocation] = useState<RiderLocationState | null>(null)
   const [currentTime, setCurrentTime] = useState(() => Date.now())
@@ -90,13 +84,31 @@ export const CustomerDeliveryTracker = ({
     isError: isRouteError,
     error: routeError,
     refetch: refetchRoute,
-  } = useDeliveryRoute(delivery?.id, !!delivery?.id && !isTerminal)
+  } = useDeliveryRoute(delivery?.id, !!delivery?.id && !isTerminalInitial)
 
   const {
     data: etaData,
     isLoading: isEtaLoading,
     refetch: refetchEta,
-  } = useDeliveryEta(delivery?.id, !!delivery?.id && !isTerminal)
+  } = useDeliveryEta(delivery?.id, !!delivery?.id && !isTerminalInitial)
+
+  const isCancelled =
+    isCancelledBase ||
+    etaData?.status === 'cancelled' ||
+    route?.status === 'cancelled'
+
+  const isDelivered =
+    isDeliveredBase ||
+    etaData?.status === 'delivered' ||
+    route?.status === 'delivered'
+
+  const liveStatus: DeliveryStatus = isCancelled
+    ? 'cancelled'
+    : isDelivered
+    ? 'delivered'
+    : wsDeliveryStatus ?? delivery?.status ?? etaData?.status ?? route?.status ?? 'pending'
+
+  const isTerminal = isCancelled || isDelivered
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(Date.now()), 30000)

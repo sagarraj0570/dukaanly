@@ -331,15 +331,29 @@ const InteractiveStoresMapView = ({
 
       setTimeout(() => {
         map.invalidateSize()
-      }, 150)
-    }
+      }, 100)
+      setTimeout(() => {
+        map.invalidateSize()
+      }, 300)
 
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
-        mapInstanceRef.current = null
-        layerGroupRef.current = null
-        markersMapRef.current.clear()
+      let resizeObserver: ResizeObserver | null = null
+      if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
+        resizeObserver = new ResizeObserver(() => {
+          map.invalidateSize()
+        })
+        resizeObserver.observe(mapContainerRef.current)
+      }
+
+      return () => {
+        if (resizeObserver) {
+          resizeObserver.disconnect()
+        }
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove()
+          mapInstanceRef.current = null
+          layerGroupRef.current = null
+          markersMapRef.current.clear()
+        }
       }
     }
   }, [])

@@ -41,9 +41,9 @@ export const RiderDeliveryDetail = () => {
 
   const { data: delivery, isLoading, isError, error, refetch } = useDelivery(id)
 
-  const isCancelled = delivery?.status === 'cancelled'
-  const isDelivered = delivery?.status === 'delivered'
-  const isTerminal = isCancelled || isDelivered
+  const isCancelledBase = delivery?.status === 'cancelled'
+  const isDeliveredBase = delivery?.status === 'delivered'
+  const isTerminalInitial = isCancelledBase || isDeliveredBase
 
   const {
     data: route,
@@ -51,8 +51,12 @@ export const RiderDeliveryDetail = () => {
     isError: isRouteError,
     error: routeError,
     refetch: refetchRoute,
-  } = useDeliveryRoute(id, !!id && !isTerminal)
-  const { data: etaData, refetch: refetchEta } = useDeliveryEta(id, !!id && !isTerminal)
+  } = useDeliveryRoute(id, !!id && !!delivery && !isTerminalInitial)
+  const { data: etaData, refetch: refetchEta } = useDeliveryEta(id, !!id && !!delivery && !isTerminalInitial)
+
+  const isCancelled = isCancelledBase || route?.status === 'cancelled' || etaData?.status === 'cancelled'
+  const isDelivered = isDeliveredBase || route?.status === 'delivered' || etaData?.status === 'delivered'
+  const isTerminal = isCancelled || isDelivered
   const { mutate: updateStatus, isPending: isUpdatingStatus } = useUpdateDeliveryStatus()
   const { mutate: updateLocation } = useUpdateLocation()
 
