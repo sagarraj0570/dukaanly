@@ -52,7 +52,9 @@ async def update_delivery_status(
     current_user: User = Depends(get_current_user)
 ):
     """Update delivery operational status."""
-    return await delivery_service.update_delivery_status(db=db, delivery_id=delivery_id, new_status=request.status, actor=current_user)
+    return await delivery_service.update_delivery_status(
+        db=db, delivery_id=delivery_id, new_status=request.status, actor=current_user, reason=request.reason
+    )
 
 from app.schemas.delivery import RiderCandidateResponse
 
@@ -73,3 +75,36 @@ async def auto_assign_delivery(
 ):
     """Automatically assign the nearest eligible rider."""
     return await delivery_service.auto_assign_delivery(db=db, delivery_id=delivery_id, actor=current_user)
+
+from app.schemas.delivery import DeliveryRouteResponse, DeliveryEtaResponse, DeliveryPreparationUpdate
+
+@router.get("/{delivery_id}/route", response_model=DeliveryRouteResponse)
+async def get_delivery_route(
+    delivery_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get full OSRM road route and navigation legs for this delivery."""
+    return await delivery_service.get_delivery_route(db=db, delivery_id=delivery_id, actor=current_user)
+
+@router.get("/{delivery_id}/eta", response_model=DeliveryEtaResponse)
+async def get_delivery_eta(
+    delivery_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get Smart Delivery ETA with arrival window, component breakdown, and source attribution."""
+    return await delivery_service.get_delivery_eta(db=db, delivery_id=delivery_id, actor=current_user)
+
+@router.patch("/{delivery_id}/preparation", response_model=DeliveryEtaResponse)
+async def update_delivery_preparation(
+    delivery_id: uuid.UUID,
+    request: DeliveryPreparationUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update shop preparation estimate and notify customer with recalculated ETA."""
+    return await delivery_service.update_delivery_preparation(
+        db=db, delivery_id=delivery_id, prep_in=request, actor=current_user
+    )
+

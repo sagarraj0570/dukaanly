@@ -3,18 +3,10 @@ import logging
 import asyncio
 import redis.asyncio as redis
 from app.core.config import settings
+from app.core.redis import get_redis_client
 from app.websockets.manager import manager
 
 logger = logging.getLogger(__name__)
-
-# Global redis pool
-_redis_pool = None
-
-async def get_redis_client() -> redis.Redis:
-    global _redis_pool
-    if _redis_pool is None:
-        _redis_pool = redis.from_url(settings.REDIS_URL, decode_responses=True)
-    return _redis_pool
 
 def get_delivery_channel(delivery_id: str) -> str:
     return f"dukaanly:delivery:{delivery_id}"

@@ -10,4 +10,4 @@ class LoginRequest(BaseModel):
     password: str
 
 class RefreshRequest(BaseModel):
-    refresh_token: str
+    refresh_token: str | None = None

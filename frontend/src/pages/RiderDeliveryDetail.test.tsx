@@ -92,4 +92,48 @@ describe('RiderDeliveryDetail', () => {
     // Should NOT have started tracking
     expect(navigator.geolocation.watchPosition).not.toHaveBeenCalled()
   })
+
+  it('renders terminal delivered state cleanly without 504 or route error overlays', async () => {
+    server.use(
+      http.get('http://localhost:8000/api/v1/deliveries/:id', ({ params }) => {
+        return HttpResponse.json({
+          id: params.id,
+          order_id: 'order-1',
+          rider_id: 'rider-1',
+          status: 'delivered',
+          destination_latitude: 25.6027,
+          destination_longitude: 85.1376,
+          assigned_at: new Date().toISOString(),
+          picked_up_at: new Date().toISOString(),
+          delivered_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+      }),
+      http.get('http://localhost:8000/api/v1/deliveries/:id/route', () => {
+        return HttpResponse.json({ detail: 'Routing service timed out' }, { status: 504 })
+      })
+    )
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/rider/deliveries/delivery-delivered-1']}>
+          <Routes>
+            <Route path="/rider/deliveries/:id" element={<RiderDeliveryDetail />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('delivered')).toBeTruthy()
+      expect(screen.getByText('This delivery is complete.')).toBeTruthy()
+      expect(screen.getByText('Delivery Completed')).toBeTruthy()
+      expect(screen.getByText('Order delivered to destination.')).toBeTruthy()
+    })
+
+    expect(screen.queryByText(/status code 504/i)).toBeNull()
+    expect(screen.queryByText('Retry Route')).toBeNull()
+    expect(screen.queryByText('Route Unavailable')).toBeNull()
+  })
 })

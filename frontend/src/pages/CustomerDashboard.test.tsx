@@ -22,7 +22,7 @@ describe('CustomerDashboard', () => {
       </QueryClientProvider>
     )
     
-    expect(screen.getByText('Shops in your area')).toBeTruthy()
+    expect(screen.getByText('Partner shops near you')).toBeTruthy()
   })
 
   it('renders shops from API', async () => {

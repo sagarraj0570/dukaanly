@@ -33,4 +33,32 @@ class ConnectionManager:
                     logger.warning(f"Failed to send message to client on delivery {delivery_id}: {e}")
                     self.disconnect(connection, delivery_id)
 
+    def get_total_connections(self) -> int:
+        """Return the total number of connected WebSockets across all deliveries."""
+        return sum(len(conns) for conns in self.active_connections.values())
+
+    def get_active_delivery_ids(self) -> list[str]:
+        """Return list of delivery IDs that currently have active connections."""
+        return list(self.active_connections.keys())
+
+    async def close_all(self, code: int = 1001, reason: str = "Server shutting down") -> int:
+        """
+        Gracefully close all active WebSockets across all deliveries during shutdown.
+        Uses WebSocket close code 1001 (Going Away).
+        """
+        closed_count = 0
+        all_deliveries = list(self.active_connections.keys())
+        for d_id in all_deliveries:
+            conns = list(self.active_connections.get(d_id, set()))
+            for ws in conns:
+                try:
+                    await ws.close(code=code, reason=reason)
+                    closed_count += 1
+                except Exception as err:
+                    logger.debug("Error closing websocket during shutdown: %s", err)
+            if d_id in self.active_connections:
+                del self.active_connections[d_id]
+        logger.info("Gracefully closed %d active WebSockets during shutdown", closed_count)
+        return closed_count
+
 manager = ConnectionManager()

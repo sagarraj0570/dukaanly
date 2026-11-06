@@ -2,6 +2,7 @@ import pytest
 import uuid
 from httpx import AsyncClient
 import json
+from app.services.payment_provider import compute_mock_razorpay_signature, compute_mock_webhook_signature
 
 pytestmark = pytest.mark.asyncio
 
@@ -48,10 +49,12 @@ async def test_payment_initiation_and_verification(async_client: AsyncClient):
     provider_order_id = init_data["provider_order_id"]
     
     # 2. Verify Payment (Valid Signature)
+    payment_id = f"pay_mock_{uuid.uuid4().hex[:6]}"
+    valid_sig = compute_mock_razorpay_signature(provider_order_id, payment_id)
     verify_req = {
         "razorpay_order_id": provider_order_id,
-        "razorpay_payment_id": f"pay_mock_{uuid.uuid4().hex[:6]}",
-        "razorpay_signature": "mock_signature_valid" # Valid in mock provider
+        "razorpay_payment_id": payment_id,
+        "razorpay_signature": valid_sig
     }
     verify_res = await async_client.post("/api/v1/payments/verify", json=verify_req, headers=headers)
     assert verify_res.status_code == 200
@@ -101,10 +104,12 @@ async def test_invalid_signature_and_webhooks(async_client: AsyncClient):
             }
         }
     }
+    payload_bytes = json.dumps(webhook_payload).encode()
+    valid_wh_sig = compute_mock_webhook_signature(payload_bytes)
     webhook_res = await async_client.post(
         "/api/v1/payments/webhook", 
-        content=json.dumps(webhook_payload).encode(),
-        headers={"x-razorpay-signature": "mock_webhook_signature_valid"}
+        content=payload_bytes,
+        headers={"x-razorpay-signature": valid_wh_sig}
     )
     assert webhook_res.status_code == 200
     

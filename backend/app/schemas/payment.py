@@ -12,6 +12,8 @@ class PaymentInitiationResponse(BaseModel):
     amount: Decimal
     currency: str
     key_id: str | None = None # Public key for frontend SDK
+    mock_payment_id: str | None = None
+    mock_signature: str | None = None
 
 class PaymentVerificationRequest(BaseModel):
     razorpay_order_id: str

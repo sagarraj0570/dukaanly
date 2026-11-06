@@ -27,20 +27,54 @@ services:
     image: redis:7-alpine
     container_name: dukaanly_redis
     restart: unless-stopped
-    command: redis-server --save 60 1 --loglevel warning
+    command: >
+      sh -c "if [ -n \"$$REDIS_PASSWORD\" ]; then
+        exec redis-server --requirepass \"$$REDIS_PASSWORD\" --save 60 1 --loglevel warning;
+      else
+        exec redis-server --save 60 1 --loglevel warning;
+      fi"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
       test:
-        - CMD
-        - redis-cli
-        - ping
+        - CMD-SHELL
+        - >
+          if [ -n "$$REDIS_PASSWORD" ]; then
+            redis-cli -a "$$REDIS_PASSWORD" ping | grep -q PONG;
+          else
+            redis-cli ping | grep -q PONG;
+          fi
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - dukaanly_net
+
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:v5.27.1
+    container_name: dukaanly_osrm
+    restart: unless-stopped
+    command: >
+      sh -c "if [ -f /data/bihar-latest.osrm ]; then
+        exec osrm-routed --algorithm mld /data/bihar-latest.osrm;
+      else
+        echo 'OSRM data not found in /data. Run scripts/prepare_osrm_bihar.sh first.' && sleep 3600;
+      fi"
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - ./deploy/osrm/data:/data:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:5000/nearest/v1/driving/85.1158,25.6144 | grep -q 'code.*Ok' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     networks:
       - dukaanly_net
 
@@ -50,7 +84,7 @@ services:
       dockerfile: Dockerfile
     container_name: dukaanly_api
     restart: unless-stopped
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: /app/start.sh
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -58,9 +92,16 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_URL: redis://redis:6379/0
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       APP_ENV: ${APP_ENV:-development}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-*}
+      ROUTING_PROVIDER: ${ROUTING_PROVIDER:-osrm}
+      OSRM_BASE_URL: ${OSRM_BASE_URL:-http://osrm:5000}
+      OSRM_TIMEOUT_SECONDS: ${OSRM_TIMEOUT_SECONDS:-4.0}
+      OSRM_CACHE_TTL_SECONDS: ${OSRM_CACHE_TTL_SECONDS:-300}
+      OSRM_MAX_CONCURRENT_REQUESTS: ${OSRM_MAX_CONCURRENT_REQUESTS:-10}
     ports:
       - "127.0.0.1:${APP_PORT:-8000}:8000"
     depends_on:
@@ -95,12 +136,52 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_URL: redis://redis:6379/0
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       APP_ENV: ${APP_ENV:-development}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+    networks:
+      - dukaanly_net
+
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dukaanly_beat
+    restart: unless-stopped
+    command: celery -A app.core.celery_app beat --loglevel=info
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_URL: redis://redis:6379/0
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      APP_ENV: ${APP_ENV:-development}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dukaanly_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dukaanly_frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      api:
         condition: service_healthy
     networks:
       - dukaanly_net

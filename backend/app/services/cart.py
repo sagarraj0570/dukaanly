@@ -9,6 +9,7 @@ from fastapi import HTTPException, status
 from app.models.cart import Cart, CartItem
 from app.models.product import Product
 from app.models.inventory import Inventory
+from app.models.shop import Shop, ShopVerificationStatus
 from app.models.user import User
 from app.schemas.cart import CartResponse, CartItemResponse
 
@@ -70,6 +71,16 @@ async def add_item_to_cart(db: AsyncSession, customer: User, product_id: uuid.UU
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found or inactive")
         
+    # 1.1 Validate Shop Orderability
+    shop_stmt = select(Shop).where(Shop.id == product.shop_id)
+    shop_res = await db.execute(shop_stmt)
+    shop = shop_res.scalar_one_or_none()
+    if not shop or not shop.is_active or not shop.is_orderable or shop.verification_status != ShopVerificationStatus.verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This business is listed for directory discovery only and is not currently accepting online orders."
+        )
+
     # 2. Validate one-shop-per-cart rule
     if cart.shop_id and cart.shop_id != product.shop_id:
         raise HTTPException(

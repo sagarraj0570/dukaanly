@@ -12,11 +12,16 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 def create_access_token(subject: str, role: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode = {
         "exp": expire,
+        "iat": now,
+        "nbf": now,
         "sub": str(subject),
         "role": role,
+        "iss": "dukaanly",
+        "aud": "dukaanly-api",
     }
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
@@ -35,9 +40,18 @@ def hash_refresh_token(token: str) -> str:
 
 def decode_token(token: str) -> dict:
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+            options={"require": ["exp", "sub"], "verify_aud": False, "verify_iss": False},
+        )
+        if "iss" in payload and payload["iss"] != "dukaanly":
+            raise ValueError("Invalid token issuer")
+        if "aud" in payload and payload["aud"] != "dukaanly-api":
+            raise ValueError("Invalid token audience")
         return payload
     except jwt.ExpiredSignatureError:
         raise ValueError("Token expired")
-    except jwt.InvalidTokenError:
-        raise ValueError("Invalid token")
+    except jwt.InvalidTokenError as exc:
+        raise ValueError(f"Invalid token: {exc}")

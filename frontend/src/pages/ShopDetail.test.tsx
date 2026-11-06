@@ -31,4 +31,50 @@ describe('ShopDetail', () => {
       expect(screen.getByText('Test Product')).toBeTruthy()
     })
   })
+
+  it('renders directory listing notice for unverified discovered shops', async () => {
+    const { server } = await import('@/setupTests')
+    const { http, HttpResponse } = await import('msw')
+
+    server.use(
+      http.get('http://localhost:8000/api/v1/shops/:id', () => {
+        return HttpResponse.json({
+          id: 'shop-unverified',
+          owner_id: null,
+          name: 'Patna Candidate Kirana',
+          description: 'A neighbourhood OSM listing',
+          address: 'Boring Road, Patna',
+          phone: '+91 612 254 1102',
+          is_active: true,
+          is_orderable: false,
+          verification_status: 'discovered',
+          source_attribution: '© OpenStreetMap contributors, ODbL',
+          location: { latitude: 25.6144, longitude: 85.1158 },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+      })
+    )
+
+    const unverifiedQueryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    render(
+      <QueryClientProvider client={unverifiedQueryClient}>
+        <MemoryRouter initialEntries={['/shops/shop-unverified']}>
+          <Routes>
+            <Route path="/shops/:id" element={<ShopDetail />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Patna Candidate Kirana')).toBeTruthy()
+      expect(screen.getByText(/Neighbourhood Directory Listing/i)).toBeTruthy()
+      expect(screen.getByText(/In-Store Shopping Only/i)).toBeTruthy()
+      expect(screen.getByText(/Claim this business/i)).toBeTruthy()
+    })
+  })
 })

@@ -43,6 +43,13 @@ docker-compose.override.yml
 *.DS_Store
 Thumbs.db
 
-# ─── Logs ─────────────────────────────────────
+# ─── Logs & Test Outputs ──────────────────────
 *.log
 logs/
+backend/test-results/
+test_suite_baseline.txt
+
+# ─── OSRM Preprocessed Map Data ───────────────
+deploy/osrm/data/*.pbf
+deploy/osrm/data/*.osrm*
+!deploy/osrm/data/.gitkeep

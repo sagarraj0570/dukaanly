@@ -11,7 +11,7 @@ export interface OrderItem {
   line_total: number
 }
 
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'out_for_delivery' | 'delivered' | 'cancelled'
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready_for_delivery' | 'ready_for_pickup' | 'out_for_delivery' | 'delivered' | 'cancelled'
 
 export type DeliveryStatus = 'pending' | 'assigned' | 'picked_up' | 'out_for_delivery' | 'delivered' | 'cancelled'
 
@@ -34,10 +34,51 @@ export interface Order {
   created_at: string
   updated_at: string
   delivery?: OrderDeliverySummary | null
+  reservation_expires_at?: string | null
+  reservation_status?: string | null
+}
+
+export interface ReservationItem {
+  product_id: string
+  quantity: number
+  status: string
+  reservation_reference: string
+}
+
+export interface OrderReservation {
+  order_id: string
+  status: 'active' | 'consumed' | 'released' | 'expired' | 'none'
+  expires_at: string | null
+  seconds_remaining: number
+  server_time?: string
+  is_expired: boolean
+  items: ReservationItem[]
+}
+
+export const fetchOrderReservation = async (orderId: string): Promise<OrderReservation> => {
+  const { data } = await api.get(`/orders/${orderId}/reservation`)
+  return data
+}
+
+export const useOrderReservation = (orderId: string | undefined, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['order-reservation', orderId],
+    queryFn: () => fetchOrderReservation(orderId!),
+    enabled: !!orderId && enabled,
+    refetchInterval: (query) => {
+      const data = query.state.data
+      if (data && data.status === 'active' && !data.is_expired) {
+        return 5000
+      }
+      return false
+    },
+  })
 }
 
 export interface CheckoutPayload {
   idempotency_key: string
+  destination_latitude?: number | null
+  destination_longitude?: number | null
 }
 
 export interface OrderListResponse {
@@ -78,6 +119,27 @@ export const useOrders = (page: number = 1, size: number = 20) => {
   return useQuery({
     queryKey: ['orders', page, size],
     queryFn: () => fetchOrders(page, size),
+  })
+}
+
+export interface CancelOrderPayload {
+  orderId: string
+  reason?: string
+}
+
+export const cancelOrder = async ({ orderId, reason }: CancelOrderPayload): Promise<Order> => {
+  const { data } = await api.post(`/orders/${orderId}/cancel`, { reason })
+  return data
+}
+
+export const useCancelOrder = () => {
+  const queryClient = useQueryClient()
+  return useMutation<Order, AxiosError, CancelOrderPayload>({
+    mutationFn: cancelOrder,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['order', variables.orderId] })
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    }
   })
 }
 

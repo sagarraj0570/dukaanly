@@ -1,10 +1,11 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter } from 'react-router-dom'
 import { RootLayout } from '@/layouts/RootLayout'
 import { CustomerLayout } from '@/layouts/CustomerLayout'
 import { ShopLayout } from '@/layouts/ShopLayout'
 import { RiderLayout } from '@/layouts/RiderLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Login } from '@/pages/Login'
+import { LandingPage } from '@/pages/LandingPage'
 import { CustomerDashboard } from '@/pages/CustomerDashboard'
 import { ShopDetail } from '@/pages/ShopDetail'
 import { ProductDetail } from '@/pages/ProductDetail'
@@ -17,8 +18,18 @@ import { CustomerOrderDetail } from '@/pages/CustomerOrderDetail'
 import { ShopDashboard } from '@/pages/ShopDashboard'
 import { RiderDashboard } from '@/pages/RiderDashboard'
 import { RiderDeliveryDetail } from '@/pages/RiderDeliveryDetail'
+import { CreditsPage } from '@/pages/Credits'
+import { DevComponentsShowcase } from '@/pages/DevComponentsShowcase'
 
 export const router = createBrowserRouter([
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: '/dev/components',
+          element: <DevComponentsShowcase />,
+        },
+      ]
+    : []),
   {
     path: '/login',
     element: <Login />
@@ -28,8 +39,12 @@ export const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       {
-        path: '/',
-        element: <Navigate to="/login" replace />
+        index: true,
+        element: <LandingPage />
+      },
+      {
+        path: 'credits',
+        element: <CreditsPage />
       },
       // Customer Routes
       {

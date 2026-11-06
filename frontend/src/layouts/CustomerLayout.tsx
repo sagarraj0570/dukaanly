@@ -9,11 +9,16 @@ import {
   MapPin,
   Search,
   X,
+  ChevronDown,
+  Sparkles,
+  Navigation,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/hooks/useCart'
-import { useShops } from '@/hooks/useShops'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { LocationModal } from '@/components/LocationModal'
+import { useLocationStore } from '@/store/useLocationStore'
+import { ShoppingAssistantModal } from '@/components/ai/ShoppingAssistantModal'
 
 const CartButton = () => {
   const { data } = useCart()
@@ -25,11 +30,11 @@ const CartButton = () => {
       type="button"
       onClick={() => navigate('/customer/cart')}
       aria-label={`Shopping cart${itemCount > 0 ? `, ${itemCount} items` : ''}`}
-      className="relative inline-flex items-center justify-center h-10 w-10 rounded-xl border border-border bg-white text-foreground hover:bg-[#EDF5EE] hover:border-[#A8D5B5] transition-colors shrink-0"
+      className="relative inline-flex items-center justify-center h-10 w-10 rounded-xl border border-border bg-surface text-ink hover:bg-sand transition-colors shrink-0 cursor-pointer"
     >
-      <ShoppingCart className="h-4.5 w-4.5 text-[#202923]" />
+      <ShoppingCart className="h-4.5 w-4.5 text-ink" />
       {itemCount > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-[20px] px-1 items-center justify-center rounded-full bg-[#176B45] text-[11px] font-bold text-white shadow-sm ring-2 ring-white">
+        <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-[20px] px-1 items-center justify-center rounded-full bg-leaf text-[11px] font-bold text-white ring-2 ring-surface num">
           {itemCount}
         </span>
       )}
@@ -44,17 +49,42 @@ export const CustomerLayout = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const urlQuery = searchParams.get('q') || ''
   const [searchInput, setSearchInput] = useState(urlQuery)
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+  const [isLocationPopoverOpen, setIsLocationPopoverOpen] = useState(false)
+  const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false)
 
-  // Derive neighbourhood label from actual loaded shops when available
-  const { data: shopsData } = useShops(1, 12)
-  const firstAddress = shopsData?.items?.[0]?.address
-  const locationLabel = firstAddress
-    ? firstAddress.split(',').slice(-2).join(',').trim() || firstAddress
-    : null
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  const {
+    addressLabel,
+    radiusMeters,
+    requestGpsLocation,
+    setDemoPatnaLocation,
+  } = useLocationStore()
+  const radiusKm = Math.round(radiusMeters / 1000)
 
   useEffect(() => {
     setSearchInput(urlQuery)
   }, [urlQuery])
+
+  // Handle click outside location popover
+  useEffect(() => {
+    if (!isLocationPopoverOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setIsLocationPopoverOpen(false)
+      }
+    }
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsLocationPopoverOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isLocationPopoverOpen])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -88,106 +118,183 @@ export const CustomerLayout = () => {
     }
   }
 
-  const isShopsActive =
-    location.pathname === '/customer' ||
-    location.pathname.startsWith('/customer/shops') ||
-    location.pathname.startsWith('/customer/products')
   const isOrdersActive = location.pathname.startsWith('/customer/orders')
-  const isCartActive =
-    location.pathname.startsWith('/customer/cart') ||
-    location.pathname.startsWith('/customer/checkout')
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FAF9F6] text-[#202923]">
+    <div className="flex flex-col min-h-screen bg-paper text-ink">
       {/* Skip Navigation Link */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-[#176B45] focus:text-white focus:rounded-lg focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-white"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-leaf focus:text-white focus:rounded-lg focus:outline-none"
       >
         Skip to main content
       </a>
 
-      {/* Compact Commerce Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-[#E5E9E4] bg-white/95 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 sm:gap-4">
-          {/* Left: Brand + Location Pill */}
-          <div className="flex items-center gap-3 lg:gap-4 shrink-0">
+      {/* Header */}
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-surface">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2.5 sm:gap-4">
+          {/* Left: Brand + Single Location Pill in Header */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               type="button"
               onClick={() => navigate('/customer')}
               aria-label="Dukaanly Home"
-              className="flex items-center gap-2.5 shrink-0 group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B45] rounded-xl"
+              className="flex items-center gap-2 shrink-0 group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf rounded-xl cursor-pointer"
             >
-              <div className="h-9 w-9 rounded-xl bg-[#176B45] flex items-center justify-center shadow-sm group-hover:bg-[#104B32] transition-colors">
-                <Store className="h-5 w-5 text-white" aria-hidden="true" />
+              <div className="h-9 w-9 rounded-xl bg-leaf flex items-center justify-center text-white shrink-0">
+                <Store className="h-5 w-5" aria-hidden="true" />
               </div>
-              <span className="font-bold text-xl tracking-tight text-[#202923]">
-                Dukaan<span className="text-[#176B45]">ly</span>
+              <span className="font-display font-semibold text-xl tracking-tight text-ink hidden min-[400px]:inline">
+                Dukaan<span className="text-leaf">ly</span>
               </span>
             </button>
 
-            {locationLabel && (
-              <div
-                className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAF9F6] border border-[#E5E9E4] text-xs font-medium text-[#202923] max-w-[220px]"
-                title={firstAddress || ''}
+            {/* Single Location Pill with Quick-Switch Popover */}
+            <div className="relative shrink-0" ref={popoverRef}>
+              <button
+                type="button"
+                onClick={() => setIsLocationPopoverOpen((prev) => !prev)}
+                aria-expanded={isLocationPopoverOpen}
+                aria-label={`Delivery location: ${addressLabel || 'Boring Road, Patna (demo)'}`}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-sand hover:bg-border/60 border border-border text-xs font-semibold text-ink max-w-[145px] sm:max-w-[210px] md:max-w-[240px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf cursor-pointer"
               >
-                <MapPin className="h-3.5 w-3.5 text-[#176B45] shrink-0" aria-hidden="true" />
-                <span className="truncate">{locationLabel}</span>
-              </div>
-            )}
+                <MapPin className="h-3.5 w-3.5 text-leaf shrink-0" aria-hidden="true" />
+                <span className="truncate">{addressLabel || 'Boring Road, Patna (demo)'}</span>
+                <ChevronDown
+                  className={`h-3 w-3 text-ink-soft shrink-0 transition-transform ${
+                    isLocationPopoverOpen ? 'rotate-180' : ''
+                  }`}
+                  aria-hidden="true"
+                />
+              </button>
+
+              {/* Popover */}
+              {isLocationPopoverOpen && (
+                <div
+                  role="menu"
+                  className="absolute left-0 top-full mt-2 w-72 rounded-[14px] border border-border bg-surface p-2 shadow-lg z-50 text-xs animate-in fade-in-50 zoom-in-95 duration-100"
+                >
+                  <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-ink-soft">
+                    Delivery Location
+                  </div>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={async () => {
+                      setIsLocationPopoverOpen(false)
+                      await requestGpsLocation()
+                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left hover:bg-sand transition text-xs font-semibold text-ink cursor-pointer"
+                  >
+                    <div className="h-7 w-7 rounded-lg bg-sand flex items-center justify-center shrink-0 text-leaf">
+                      <Navigation className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-ink font-semibold">Use my GPS</span>
+                      <span className="block text-[10px] text-ink-soft font-normal">Detect current location</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setDemoPatnaLocation()
+                      setIsLocationPopoverOpen(false)
+                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left hover:bg-sand transition text-xs font-semibold text-ink cursor-pointer mt-0.5"
+                  >
+                    <div className="h-7 w-7 rounded-lg bg-sage-tint flex items-center justify-center shrink-0 text-leaf">
+                      <MapPin className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-ink font-semibold">Use Patna demo location (Boring Road)</span>
+                      <span className="block text-[10px] text-leaf font-medium">Near partner shops (&lt; 250m)</span>
+                    </div>
+                  </button>
+
+                  <div className="border-t border-border mt-1.5 pt-1.5 px-2.5 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsLocationPopoverOpen(false)
+                        setIsLocationModalOpen(true)
+                      }}
+                      className="text-[11px] text-ink-soft hover:text-ink hover:underline cursor-pointer font-medium"
+                    >
+                      More Patna areas...
+                    </button>
+                    <span className="text-[10px] text-ink-soft font-mono num">
+                      Radius: {radiusKm}km
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Center: Global Shop/Catalog Search */}
+          {/* Center: The Single Global Search Bar */}
           <form
             onSubmit={handleSearchSubmit}
-            className="hidden md:flex flex-1 max-w-md mx-2 relative"
+            className="flex flex-1 max-w-sm sm:max-w-md mx-1 sm:mx-2 relative min-w-0"
             role="search"
           >
-            <Search className="h-4 w-4 text-[#69736C] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
+            <Search className="h-4 w-4 text-ink-soft absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none shrink-0" aria-hidden="true" />
             <input
               type="search"
               value={searchInput}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Search shops or address..."
-              aria-label="Search for shops or address"
-              className="w-full h-10 pl-10 pr-8 rounded-full bg-[#FAF9F6] border border-[#E5E9E4] text-sm text-[#202923] placeholder:text-[#69736C] focus:bg-white focus:border-[#176B45] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#176B45] transition-colors"
+              placeholder="Search shops or products"
+              aria-label="Search shops or products"
+              className="w-full h-10 pl-9 pr-7 sm:pr-8 rounded-full bg-sand/60 border border-border text-xs sm:text-sm text-ink placeholder:text-ink-soft focus:bg-surface focus:border-leaf focus:outline-none transition-colors"
             />
             {searchInput && (
               <button
                 type="button"
                 onClick={clearHeaderSearch}
                 aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#69736C] hover:text-[#202923] p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B45] rounded-full"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-soft hover:text-ink p-0.5 rounded-full cursor-pointer"
               >
                 <X className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             )}
           </form>
 
-          {/* Right: Orders, Cart, Profile, Logout */}
-          <nav aria-label="Main navigation" className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {/* Right: Orders, AI Assistant, Cart, Profile, Logout */}
+          <nav aria-label="Main navigation" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
               onClick={() => navigate('/customer/orders')}
               aria-current={isOrdersActive ? 'page' : undefined}
-              className={`hidden sm:inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl text-sm font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B45] ${
+              className={`hidden md:inline-flex items-center gap-1.5 h-10 px-3 rounded-xl text-xs sm:text-sm font-semibold border transition-colors cursor-pointer ${
                 isOrdersActive
-                  ? 'bg-[#EDF5EE] text-[#176B45] border-[#A8D5B5]'
-                  : 'bg-white text-[#202923] border-transparent hover:bg-[#FAF9F6] hover:border-[#E5E9E4]'
+                  ? 'bg-sage-tint text-leaf border-leaf/30'
+                  : 'bg-surface text-ink border-transparent hover:bg-sand hover:border-border'
               }`}
             >
-              <Package className="h-4 w-4 text-[#176B45]" aria-hidden="true" />
+              <Package className="h-4 w-4 text-ink-soft" aria-hidden="true" />
               <span>Orders</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsAiAssistantOpen(true)}
+              aria-label="Open AI Shopping Assistant"
+              className="hidden sm:inline-flex items-center gap-1.5 h-10 px-3 rounded-xl text-xs sm:text-sm font-semibold border border-leaf/30 bg-sage-tint text-leaf hover:bg-sage-tint/80 transition-colors shrink-0 cursor-pointer"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden lg:inline">AI Assistant</span>
             </button>
 
             <CartButton />
 
-            <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-[#E5E9E4]">
-              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-[#FAF9F6] border border-[#E5E9E4]">
-                <div className="h-6 w-6 rounded-full bg-[#176B45] text-white flex items-center justify-center text-xs font-bold shrink-0">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : <UserIcon className="h-3.5 w-3.5" />}
+            <div className="hidden sm:flex items-center gap-1.5 pl-1.5 border-l border-border">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-sand border border-border">
+                <div className="h-5 w-5 rounded-full bg-leaf text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : <UserIcon className="h-3 w-3" />}
                 </div>
-                <span className="text-xs font-semibold text-[#202923] max-w-[110px] truncate">
+                <span className="text-xs font-semibold text-ink max-w-[100px] truncate">
                   {user?.name?.replace(/\s*\(.*\)/, '') || 'Account'}
                 </span>
               </div>
@@ -195,7 +302,7 @@ export const CustomerLayout = () => {
                 variant="ghost"
                 size="icon"
                 onClick={logout}
-                className="h-9 w-9 text-[#69736C] hover:text-red-600 hover:bg-red-50 rounded-xl"
+                className="h-9 w-9 text-ink-soft hover:text-brick-ink hover:bg-brick-tint/20 rounded-xl cursor-pointer"
                 title="Sign out"
                 aria-label="Sign out"
               >
@@ -208,7 +315,7 @@ export const CustomerLayout = () => {
               variant="ghost"
               size="icon"
               onClick={logout}
-              className="sm:hidden h-9 w-9 text-[#69736C] hover:text-red-600 rounded-xl"
+              className="sm:hidden h-9 w-9 text-ink-soft hover:text-brick-ink rounded-xl"
               title="Sign out"
               aria-label="Sign out"
             >
@@ -219,71 +326,37 @@ export const CustomerLayout = () => {
       </header>
 
       {/* Main Content */}
-      <main id="main-content" tabIndex={-1} className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 sm:pb-12 focus:outline-none">
+      <main id="main-content" tabIndex={-1} className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-6 focus:outline-none">
         <Outlet />
       </main>
 
-      {/* Desktop Footer */}
-      <footer className="hidden sm:block border-t border-[#E5E9E4] bg-white mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#69736C]">
-          <div className="flex items-center gap-2.5">
-            <div className="h-6 w-6 rounded-lg bg-[#176B45] flex items-center justify-center">
-              <Store className="h-3.5 w-3.5 text-white" aria-hidden="true" />
+      {/* Customer Footer */}
+      <footer className="border-t border-border bg-surface mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-ink-soft">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded-lg bg-leaf flex items-center justify-center text-white shrink-0">
+              <Store className="h-3.5 w-3.5" aria-hidden="true" />
             </div>
-            <span className="font-semibold text-[#202923]">Dukaanly</span>
+            <span className="font-semibold text-ink">Dukaanly</span>
             <span>·</span>
-            <span>Local shops. Stronger communities.</span>
+            <span>Patna Hyperlocal Neighbourhood Commerce</span>
           </div>
-          <div className="flex items-center gap-4">
-            <span>Hyperlocal Neighbourhood Commerce</span>
-          </div>
+          <span className="text-[11px] text-ink-soft">
+            Local kirana, medical & confectionery stores in your neighbourhood
+          </span>
         </div>
       </footer>
 
-      {/* Mobile Bottom Navigation */}
-      <nav
-        aria-label="Mobile navigation"
-        className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E5E9E4] shadow-elevated pb-safe"
-      >
-        <div className="grid grid-cols-3 h-14">
-          <button
-            type="button"
-            onClick={() => navigate('/customer')}
-            aria-label="Home"
-            aria-current={isShopsActive ? 'page' : undefined}
-            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold transition-colors ${
-              isShopsActive ? 'text-[#176B45]' : 'text-[#69736C]'
-            }`}
-          >
-            <Store className="h-5 w-5" aria-hidden="true" />
-            <span>Home</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/customer/orders')}
-            aria-label="Orders"
-            aria-current={isOrdersActive ? 'page' : undefined}
-            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold transition-colors ${
-              isOrdersActive ? 'text-[#176B45]' : 'text-[#69736C]'
-            }`}
-          >
-            <Package className="h-5 w-5" aria-hidden="true" />
-            <span>Orders</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/customer/cart')}
-            aria-label="Cart"
-            aria-current={isCartActive ? 'page' : undefined}
-            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold transition-colors ${
-              isCartActive ? 'text-[#176B45]' : 'text-[#69736C]'
-            }`}
-          >
-            <ShoppingCart className="h-5 w-5" aria-hidden="true" />
-            <span>Cart</span>
-          </button>
-        </div>
-      </nav>
+      <LocationModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+      />
+
+      <ShoppingAssistantModal
+        isOpen={isAiAssistantOpen}
+        onClose={() => setIsAiAssistantOpen(false)}
+      />
     </div>
   )
 }
+export default CustomerLayout

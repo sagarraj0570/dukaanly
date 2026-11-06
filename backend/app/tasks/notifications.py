@@ -57,12 +57,15 @@ async def _create_notification_async(user_id: str, title: str, body: str, notifi
         await engine.dispose()
 
 
+from sqlalchemy.exc import DBAPIError, OperationalError
+from celery.exceptions import SoftTimeLimitExceeded
+
 @celery_app.task(
     bind=True,
-    autoretry_for=(Exception,),
+    autoretry_for=(OperationalError, DBAPIError),
     retry_backoff=True,
     retry_backoff_max=300,
-    max_retries=5,
+    max_retries=3,
     name="app.tasks.notifications.create_notification"
 )
 def create_notification(self, user_id: str, title: str, body: str, notification_type: str, reference_id: Optional[str] = None, data: Optional[dict] = None):

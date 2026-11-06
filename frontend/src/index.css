@@ -1,128 +1,384 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import "leaflet/dist/leaflet.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Dukaanly Brand Palette */
-    --brand-primary: #176B45;
-    --brand-deep: #104B32;
-    --brand-accent: #A8D5B5;
-    --brand-warm-bg: #FAF9F6;
-    --brand-text: #202923;
-    --brand-text-secondary: #69736C;
-    --brand-border: #E5E9E4;
-    --brand-soft: #EDF5EE;
-    --brand-white: #FFFFFF;
+    /* ─── Bazaar Paper Foundation Tokens ─── */
+    --paper: #F6F1E7;          /* page background */
+    --surface: #FBF8F2;        /* cards, dialogs, inputs */
+    --sand: #EDE5D4;           /* secondary panels */
+    --border: #DDD3BE;         /* decorative 1px lines */
+    --border-strong: #8F8468;  /* input borders, needs 3:1 */
+    --ink: #1E2A24;            /* primary text */
+    --ink-soft: #55635A;       /* secondary text */
+    --leaf: #2F6B4F;           /* primary actions */
+    --leaf-hover: #265A42;
+    --leaf-ink: #FBF8F2;       /* text on leaf */
+    --sage-tint: #DCE8DD;      /* soft green fills */
+    --turmeric: #C58A1A;       /* accent FILLS/ICONS only, never body text */
+    --turmeric-tint: #F4E3B8;
+    --turmeric-ink: #8A5A00;   /* turmeric-colored TEXT on paper */
+    --brick: #B04A2C;          /* urgent/cancelled fills, icons, borders */
+    --brick-tint: #F1D9CF;
+    --brick-ink: #8E3A1F;      /* brick-colored TEXT */
 
-    /* shadcn/ui token overrides — Dukaanly green theme */
-    --background: 45 29% 98%; /* #FAF9F6 warm off-white */
-    --foreground: 140 12% 14%; /* #202923 */
-    --card: 0 0% 100%;
-    --card-foreground: 140 12% 14%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 140 12% 14%;
-    --primary: 153 65% 25%; /* #176B45 */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 128 29% 95%; /* #EDF5EE */
-    --secondary-foreground: 140 12% 14%;
-    --muted: 128 29% 95%;
-    --muted-foreground: 138 5% 43%; /* #69736C */
-    --accent: 137 36% 75%; /* #A8D5B5 */
-    --accent-foreground: 155 65% 18%; /* #104B32 */
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 105 13% 90%; /* #E5E9E4 */
-    --input: 105 13% 90%;
-    --ring: 153 65% 25%;
-    --radius: 0.75rem;
+    /* Typography Tokens */
+    --font-display: "Fraunces Variable", Georgia, serif;
+    --font-sans: "Figtree Variable", "Noto Sans Devanagari Variable", system-ui, sans-serif;
 
-    /* Sidebar */
-    --sidebar: 0 0% 100%;
-    --sidebar-foreground: 140 12% 14%;
-    --sidebar-primary: 153 65% 25%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 128 29% 95%;
-    --sidebar-accent-foreground: 140 12% 14%;
-    --sidebar-border: 105 13% 90%;
-    --sidebar-ring: 153 65% 25%;
+    /* Shape & Depth Tokens */
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-md: 12px;
+    --radius-lg: 14px;
+    --shadow: 0 8px 24px rgba(30, 42, 36, 0.12);
+    --shadow-warm-xs: none;
+    --shadow-warm-soft: none;
+    --shadow-warm-card: none;
+    --shadow-warm-elevated: 0 8px 24px rgba(30, 42, 36, 0.12);
+    --shadow-green-btn: none;
+    --shadow-accent-btn: none;
+
+    /* Motion Tokens */
+    --dur-fast: 150ms;
+    --dur: 220ms;
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    /* ─── Shadcn / Tailwind Mappings ─── */
+    --background: var(--paper);
+    --foreground: var(--ink);
+    --card: var(--surface);
+    --card-foreground: var(--ink);
+    --popover: var(--surface);
+    --popover-foreground: var(--ink);
+    --primary: var(--leaf);
+    --primary-foreground: var(--leaf-ink);
+    --secondary: var(--sand);
+    --secondary-foreground: var(--ink);
+    --muted: var(--sand);
+    --muted-foreground: var(--ink-soft);
+    --accent: var(--sage-tint);
+    --accent-foreground: var(--ink);
+    --destructive: var(--brick);
+    --destructive-foreground: var(--leaf-ink);
+    --input: var(--border-strong);
+    --ring: var(--leaf);
+
+    /* ─── Aliased Legacy Variables (Kept for full backward-compatibility) ─── */
+    --bg: var(--paper);
+    --surface-alt: var(--sand);
+    --text-primary: var(--ink);
+    --text-secondary: var(--ink-soft);
+    --text-muted: var(--ink-soft);
+    --text-h: var(--ink);
+
+    --primary-900: #1B4532;
+    --primary-700: var(--leaf);
+    --primary-600: var(--leaf-hover);
+    --primary-500: var(--leaf);
+    --primary-200: var(--sage-tint);
+    --primary-100: #E6EFE7;
+    --primary-50:  #EFF5F0;
+
+    --accent-700: var(--turmeric-ink);
+    --accent-600: var(--turmeric-ink);
+    --accent-500: var(--turmeric);
+    --accent-200: var(--turmeric-tint);
+    --accent-100: #FAF2DD;
+    --accent-bg: var(--turmeric-tint);
+    --accent-border: var(--turmeric);
+
+    --terracotta-600: var(--brick);
+    --terracotta-100: var(--brick-tint);
+
+    --semantic-success: var(--leaf);
+    --semantic-warning: var(--turmeric);
+    --semantic-error: var(--brick);
+    --semantic-info: #2B7A9B;
+
+    --role-customer: #2B7A9B;
+    --role-customer-bg: #E3F1F6;
+    --role-shop: var(--leaf);
+    --role-shop-bg: var(--sage-tint);
+    --role-rider: var(--turmeric-ink);
+    --role-rider-bg: var(--turmeric-tint);
+
+    --social-bg: var(--surface);
+
+    --brand-primary: var(--leaf);
+    --brand-deep: var(--leaf-hover);
+    --brand-accent: var(--turmeric);
+    --brand-warm-bg: var(--paper);
+    --brand-text: var(--ink);
+    --brand-text-secondary: var(--ink-soft);
+    --brand-border: var(--border);
+    --brand-soft: var(--sage-tint);
+    --brand-white: var(--surface);
+
+    --sidebar: var(--surface);
+    --sidebar-foreground: var(--ink);
+    --sidebar-primary: var(--leaf);
+    --sidebar-primary-foreground: var(--leaf-ink);
+    --sidebar-accent: var(--sand);
+    --sidebar-accent-foreground: var(--ink);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--leaf);
   }
 
   * {
-    @apply border-border;
+    border-color: var(--border);
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 24px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    color: #202923;
-    background-color: #FAF9F6;
   }
 
   html {
-    @apply font-sans;
+    font-family: var(--font-sans);
     scroll-behavior: smooth;
     scroll-padding-top: 5rem;
   }
 
-  /* Editorial & Operational Typography Scale */
+  /* Typography Scale: h1 32/38 (mobile 26/32), h2 24/30, h3 18/26, body 15/24, caption 13/18 */
   h1 {
-    @apply text-2xl sm:text-3xl font-bold tracking-tight text-foreground;
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 26px;
+    line-height: 32px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
-  h2 {
-    @apply text-xl sm:text-2xl font-bold tracking-tight text-foreground;
-  }
-  h3 {
-    @apply text-base sm:text-lg font-semibold text-foreground;
-  }
-  h4 {
-    @apply text-sm sm:text-base font-semibold text-foreground;
+  @media (min-width: 640px) {
+    h1 {
+      font-size: 32px;
+      line-height: 38px;
+    }
   }
 
-  /* Accessible keyboard focus ring */
+  h2 {
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 24px;
+    line-height: 30px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 18px;
+    line-height: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  h4 {
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 22px;
+    font-weight: 600;
+  }
+
+  /* Accessible keyboard focus ring on EVERY interactive element */
   :focus-visible {
-    outline: 2px solid #176B45;
-    outline-offset: 2px;
+    outline: 2px solid var(--leaf) !important;
+    outline-offset: 2px !important;
+  }
+
+  /* Form Elements: Height 48px, bg surface, 1px border-strong, radius 12px */
+  input[type="text"],
+  input[type="search"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="number"],
+  select {
+    height: 48px;
+    background-color: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    color: var(--ink);
+    font-family: var(--font-sans);
+  }
+
+  textarea {
+    background-color: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    min-height: 80px;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--ink-soft);
+    opacity: 1;
+  }
+
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    border-color: var(--leaf);
+    box-shadow: 0 0 0 2px rgba(47, 107, 79, 0.3);
+  }
+
+  /* Global icon default strokeWidth 1.75 */
+  svg.lucide {
+    stroke-width: 1.75;
   }
 }
 
 @layer utilities {
-  /* Dukaanly restrained brand surfaces */
+  /* Number tabular utility */
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+
+  /* Flat surface styles (no gradients or blurs) */
   .brand-gradient {
-    background: linear-gradient(135deg, #176B45 0%, #104B32 100%);
+    background: var(--leaf);
   }
   .brand-gradient-soft {
-    background: linear-gradient(135deg, #EDF5EE 0%, #FAF9F6 100%);
+    background: var(--sand);
   }
   .hero-surface {
-    background: radial-gradient(circle at 82% 45%, rgba(168, 213, 181, 0.35) 0%, rgba(237, 245, 238, 0.7) 48%, #FAF9F6 100%);
+    background: var(--sand);
+  }
+  .login-left-surface {
+    background: var(--sand);
   }
 
-  /* Restrained card elevation */
+  /* Warm button variations */
+  .btn-primary {
+    background-color: var(--leaf);
+    color: var(--leaf-ink);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    font-weight: 600;
+    min-height: 44px;
+    box-shadow: none;
+    transition: background-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  }
+  .btn-primary:hover {
+    background-color: var(--leaf-hover);
+  }
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-accent {
+    background-color: var(--turmeric-tint);
+    color: var(--ink);
+    border: 1px solid var(--turmeric);
+    border-radius: var(--radius);
+    font-weight: 600;
+    min-height: 44px;
+    box-shadow: none;
+    transition: background-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  }
+  .btn-accent:hover {
+    background-color: #EBD6A2;
+  }
+  .btn-accent:active {
+    transform: scale(0.98);
+  }
+
+  /* Restrained card with 1px border, no shadow, no lift */
   .card-hover {
-    @apply transition-all duration-200 hover:shadow-card hover:border-[#C8D8CC];
+    transition: border-color var(--dur-fast) var(--ease);
+  }
+  .card-hover:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--border-strong);
   }
 
-  /* Status badge variants */
+  /* Status badge variants: 12px, weight 600, letter-spacing 0.04em, uppercase */
   .badge-success {
-    @apply inline-flex items-center gap-1 rounded-full bg-[#EDF5EE] px-2.5 py-0.5 text-xs font-semibold text-[#176B45] border border-[#A8D5B5]/70;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: var(--radius-sm);
+    padding: 0.125rem 0.625rem;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background-color: var(--sage-tint);
+    color: var(--leaf);
+    border: 1px solid transparent;
   }
   .badge-warning {
-    @apply inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800 border border-amber-200;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: var(--radius-sm);
+    padding: 0.125rem 0.625rem;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background-color: var(--turmeric-tint);
+    color: var(--ink);
+    border: 1px solid transparent;
   }
   .badge-error {
-    @apply inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700 border border-red-200;
-  }
-  .badge-info {
-    @apply inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 border border-blue-200;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: var(--radius-sm);
+    padding: 0.125rem 0.625rem;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background-color: var(--brick-tint);
+    color: var(--brick-ink);
+    border: 1px solid transparent;
   }
   .badge-neutral {
-    @apply inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-[#69736C] border border-[#E5E9E4];
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: var(--radius-sm);
+    padding: 0.125rem 0.625rem;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background-color: var(--sand);
+    color: var(--ink);
+    border: 1px solid var(--border);
+  }
+
+  /* Cart Badge: Full pill for count */
+  .cart-badge {
+    background-color: var(--turmeric);
+    color: var(--ink);
+    border-radius: 9999px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
   }
 
   /* Line clamp utilities */
@@ -133,15 +389,35 @@
   /* Safe area for mobile bottom nav */
   .pb-safe { padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem)); }
 
-  /* WebKit backdrop-filter glass utility */
+  /* Flat header without glass/blur */
   .glass-header {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background-color: var(--paper);
+    border-bottom: 1px solid var(--border);
   }
 }
 
+/* Skeleton shimmer: sand to paper subtle shimmer, 1.4s, disabled under reduced motion */
+@keyframes shimmer {
+  0% {
+    background-color: var(--sand);
+  }
+  50% {
+    background-color: var(--paper);
+  }
+  100% {
+    background-color: var(--sand);
+  }
+}
+
+.animate-pulse {
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* Global Reduced Motion Rule */
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime
-from sqlalchemy import String, Integer, Numeric, DateTime, ForeignKey, func, CheckConstraint, Enum, UniqueConstraint
+from sqlalchemy import String, Integer, Numeric, DateTime, ForeignKey, func, CheckConstraint, Enum, UniqueConstraint, Text, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,12 +38,15 @@ class Order(Base):
     shop = relationship("Shop")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     delivery = relationship("Delivery", back_populates="order", uselist=False, lazy="selectin")
+    events = relationship("OrderEvent", back_populates="order", cascade="all, delete-orphan", order_by="OrderEvent.created_at.asc()", lazy="selectin")
+    reservations = relationship("InventoryReservation", back_populates="order", cascade="all, delete-orphan", lazy="selectin")
     
     __table_args__ = (
         CheckConstraint("total_amount >= 0", name="chk_order_total_positive"),
         # Ensure that for a given customer, the idempotency_key is unique if provided.
         # Postgres allows multiple NULLs in unique constraints.
-        UniqueConstraint('customer_id', 'idempotency_key', name='uq_order_customer_idempotency')
+        UniqueConstraint('customer_id', 'idempotency_key', name='uq_order_customer_idempotency'),
+        Index('ix_orders_status_created_at', 'status', 'created_at'),
     )
 
 class OrderItem(Base):
@@ -67,3 +70,18 @@ class OrderItem(Base):
         CheckConstraint("unit_price >= 0", name="chk_order_item_price_positive"),
         CheckConstraint("line_total >= 0", name="chk_order_item_total_positive"),
     )
+
+class OrderEvent(Base):
+    __tablename__ = "order_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    from_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    to_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    actor_role: Mapped[str] = mapped_column(String(32), nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+    order = relationship("Order", back_populates="events")
+    actor = relationship("User")

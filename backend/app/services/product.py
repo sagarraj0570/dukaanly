@@ -2,12 +2,14 @@ import uuid
 from typing import Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
 
 from app.models.product import Product
 from app.models.shop import Shop
 from app.models.user import User
 from app.schemas.product import ProductCreate, ProductUpdate
+from app.services.storage import process_and_store_image, InvalidImageError
 
 async def verify_shop_ownership(db: AsyncSession, shop_id: uuid.UUID, user: User) -> Shop:
     stmt = select(Shop).where(Shop.id == shop_id)
@@ -104,3 +106,99 @@ async def get_shop_products(
     products = (await db.execute(stmt)).scalars().all()
     
     return list(products), total
+
+
+async def upload_product_image(
+    db: AsyncSession,
+    shop_id: uuid.UUID,
+    product_id: uuid.UUID,
+    file_bytes: bytes,
+    owner: User,
+) -> Product:
+    """
+    Upload and normalize a custom product image for a specific shop's product.
+    Verifies shop ownership, enforces 5MB limit, normalizes to 600x600 WebP with
+    Warm Ivory background, generates thumbnail, and sets image_source='shop_upload'.
+    """
+    shop = await verify_shop_ownership(db, shop_id, owner)
+    product = await get_product_by_id(db, product_id)
+    if product.shop_id != shop_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found in this shop",
+        )
+
+    try:
+        full_url, thumb_url, sha256_hash = process_and_store_image(file_bytes)
+    except InvalidImageError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    product.custom_image_url = full_url
+    product.custom_thumb_url = thumb_url
+    product.image_url = full_url
+    product.thumb_url = thumb_url
+    product.image_source = "shop_upload"
+    product.image_license = "Proprietary / Shop Owner Upload"
+    product.image_attribution = f"Uploaded by {shop.name}"
+    product.image_source_url = None
+    product.image_match_confidence = 1.0
+    product.image_reviewed = True
+
+    db.add(product)
+    await db.commit()
+    await db.refresh(product)
+    return product
+
+
+async def delete_product_image(
+    db: AsyncSession,
+    shop_id: uuid.UUID,
+    product_id: uuid.UUID,
+    owner: User,
+) -> Product:
+    """
+    Remove the shop's custom uploaded image and revert to the master catalog item's
+    image if linked, or placeholder fallback if no master item is linked.
+    """
+    await verify_shop_ownership(db, shop_id, owner)
+    stmt = (
+        select(Product)
+        .options(selectinload(Product.master_item))
+        .where(Product.id == product_id, Product.shop_id == shop_id)
+    )
+    res = await db.execute(stmt)
+    product = res.scalar_one_or_none()
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found in this shop",
+        )
+
+    # Clear custom image overrides
+    product.custom_image_url = None
+    product.custom_thumb_url = None
+
+    # Revert to master catalog item if available
+    if product.master_item:
+        product.image_url = product.master_item.image_url
+        product.thumb_url = product.master_item.thumb_url
+        product.image_source = product.master_item.image_source
+        product.image_license = product.master_item.image_license
+        product.image_attribution = product.master_item.image_attribution
+        product.image_source_url = product.master_item.image_source_url
+        product.image_match_confidence = product.master_item.image_match_confidence
+        product.image_reviewed = product.master_item.image_reviewed
+    else:
+        product.image_url = None
+        product.thumb_url = None
+        product.image_source = "placeholder"
+        product.image_license = None
+        product.image_attribution = None
+        product.image_source_url = None
+        product.image_match_confidence = None
+        product.image_reviewed = False
+
+    db.add(product)
+    await db.commit()
+    await db.refresh(product)
+    return product

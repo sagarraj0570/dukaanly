@@ -2,7 +2,7 @@ import { Outlet, ScrollRestoration } from 'react-router-dom'
 
 export const RootLayout = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF9F6]">
+    <div className="min-h-screen flex flex-col bg-bg text-text-primary">
       <ScrollRestoration />
       <Outlet />
     </div>

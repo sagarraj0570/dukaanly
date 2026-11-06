@@ -4,11 +4,22 @@ import { api } from '@/api/axios'
 export interface Product {
   id: string
   shop_id: string
+  master_item_id?: string | null
   name: string
   description: string | null
   category: string | null
+  barcode?: string | null
   price: number // It comes as string/number from backend, typically string for decimals
   image_url: string | null
+  thumb_url?: string | null
+  image_source?: string | null
+  image_license?: string | null
+  image_attribution?: string | null
+  image_source_url?: string | null
+  image_match_confidence?: number | null
+  image_reviewed?: boolean
+  custom_image_url?: string | null
+  custom_thumb_url?: string | null
   is_active: boolean
   created_at: string
   updated_at: string

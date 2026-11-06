@@ -39,6 +39,13 @@ export const getDeliveryWsUrl = (deliveryId: string, token: string | null): stri
 
   // Remove trailing slashes and append ws path
   wsBase = wsBase.replace(/\/+$/, '')
+
+  // Prevent mixed-content blocking on HTTPS deployments:
+  // Browsers strictly block unencrypted ws:// connections when the page is loaded over https://.
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && wsBase.startsWith('ws://')) {
+    wsBase = wsBase.replace(/^ws:\/\//, 'wss://')
+  }
+
   const tokenParam = token ? `?token=${encodeURIComponent(token)}` : ''
   return `${wsBase}/ws/deliveries/${deliveryId}${tokenParam}`
 };

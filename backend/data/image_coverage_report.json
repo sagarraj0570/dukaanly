@@ -1,0 +1,60 @@
+{
+  "timestamp": "2026-10-26T14:33:08Z",
+  "total_products": 96,
+  "enriched_products": 96,
+  "newly_enriched": 14,
+  "already_enriched": 82,
+  "queued_for_review": 0,
+  "failed": 0,
+  "coverage_percentage": 100.0,
+  "by_source": {
+    "wikimedia": 14
+  },
+  "by_category": {
+    "Groceries": {
+      "total": 15,
+      "enriched": 15,
+      "placeholder": 0
+    },
+    "Dairy": {
+      "total": 15,
+      "enriched": 15,
+      "placeholder": 0
+    },
+    "Snacks": {
+      "total": 11,
+      "enriched": 11,
+      "placeholder": 0
+    },
+    "Beverages": {
+      "total": 9,
+      "enriched": 9,
+      "placeholder": 0
+    },
+    "Personal Care": {
+      "total": 10,
+      "enriched": 10,
+      "placeholder": 0
+    },
+    "Household Essentials": {
+      "total": 8,
+      "enriched": 8,
+      "placeholder": 0
+    },
+    "Bakery": {
+      "total": 13,
+      "enriched": 13,
+      "placeholder": 0
+    },
+    "Spices": {
+      "total": 1,
+      "enriched": 1,
+      "placeholder": 0
+    },
+    "Medicines": {
+      "total": 14,
+      "enriched": 14,
+      "placeholder": 0
+    }
+  }
+}

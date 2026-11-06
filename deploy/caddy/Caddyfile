@@ -1,0 +1,66 @@
+# Dukaanly Production & Staging Reverse Proxy (Caddy)
+#
+# Automated TLS:
+# - If DOMAIN is a valid public FQDN (e.g. patna.dukaanly.com), Caddy automatically
+#   provisions and renews Let's Encrypt / ZeroSSL TLS certificates via ACME on ports 80/443.
+# - If DOMAIN is unset or "localhost", Caddy uses its internal trusted CA (tls internal)
+#   providing secure HTTPS on localhost without requiring a public domain.
+# - If running behind another TLS terminator (e.g. Cloudflare / AWS ALB) with HTTP only,
+#   set AUTO_HTTPS=off.
+
+{$DOMAIN:localhost} {
+    # TLS configuration:
+    # Use internal self-signed CA if DOMAIN is localhost/empty, otherwise ACME
+    @is_local {
+        vars {$DOMAIN:localhost} localhost
+    }
+
+    tls {
+        issuer acme {
+            email {$ACME_EMAIL:}
+        }
+    }
+
+    # Security & Privacy Headers
+    header {
+        # HTTP Strict Transport Security
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+        # Prevent clickjacking / frame embedding
+        X-Frame-Options "DENY"
+        # Referrer Policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Permissions Policy: explicitly permit geolocation on Dukaanly origin
+        Permissions-Policy "geolocation=(self), camera=(), microphone=()"
+        # Strip Caddy server signature
+        -Server
+    }
+
+    # API & WebSocket Ingress
+    handle /api/* {
+        reverse_proxy api:8000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    # Frontend Single Page Application
+    handle {
+        reverse_proxy frontend:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Structured JSON access logs
+    log {
+        output stdout
+        format json
+    }
+}

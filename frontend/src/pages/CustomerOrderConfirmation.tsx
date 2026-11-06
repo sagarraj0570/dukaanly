@@ -1,13 +1,20 @@
+import { lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useOrder } from '@/hooks/useOrders'
 import { useShop } from '@/hooks/useShops'
 import { ErrorState } from '@/components/ErrorState'
 import { Button } from '@/components/ui/button'
 import { getProductImage, getShopCoverImage } from '@/lib/commerceMedia'
+import { ProductImage } from '@/components/ProductImage'
 import { formatCurrency } from '@/lib/utils'
-import { CheckCircle, Clock, Store, XCircle, ArrowRight, Package } from 'lucide-react'
+import { CheckCircle, Clock, Store, XCircle, ArrowRight } from 'lucide-react'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+
+// Lazy-load 3D Order Success Scene
+const OrderSuccessScene = lazy(() => import('@/components/three/OrderSuccessScene'))
 
 export const CustomerOrderConfirmation = () => {
+  useDocumentTitle('Order Confirmation')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
@@ -17,9 +24,9 @@ export const CustomerOrderConfirmation = () => {
   if (isLoading) {
     return (
       <div className="max-w-2xl mx-auto animate-pulse space-y-6">
-        <div className="h-48 bg-[#EDF5EE] rounded-2xl" />
-        <div className="h-32 bg-white border border-[#E5E9E4] rounded-2xl" />
-        <div className="h-24 bg-white border border-[#E5E9E4] rounded-2xl" />
+        <div className="h-48 bg-primary-50 rounded-2xl" />
+        <div className="h-32 bg-surface border border-border rounded-2xl" />
+        <div className="h-24 bg-surface border border-border rounded-2xl" />
       </div>
     )
   }
@@ -42,57 +49,65 @@ export const CustomerOrderConfirmation = () => {
 
   const headerConfig = isConfirmed
     ? {
-        bg: 'bg-[#EDF5EE]',
-        border: 'border-[#A8D5B5]',
-        icon: <CheckCircle className="h-14 w-14 text-[#176B45]" />,
+        bg: 'bg-primary-50',
+        border: 'border-primary-200',
+        icon: <CheckCircle className="h-14 w-14 text-primary-700" />,
         title: 'Order Confirmed!',
         subtitle: 'Your payment was successful and the shop has received your order.',
-        textColor: 'text-[#104B32]',
+        textColor: 'text-primary-900',
       }
     : isCancelled
     ? {
         bg: 'bg-red-50',
         border: 'border-red-100',
-        icon: <XCircle className="h-14 w-14 text-red-500" />,
+        icon: <XCircle className="h-14 w-14 text-semantic-error" />,
         title: 'Order Cancelled',
         subtitle: 'This order was cancelled and will not be fulfilled.',
-        textColor: 'text-red-800',
+        textColor: 'text-semantic-error',
       }
     : {
-        bg: 'bg-amber-50',
-        border: 'border-amber-200',
-        icon: <Clock className="h-14 w-14 text-amber-500" />,
+        bg: 'bg-accent-100/70',
+        border: 'border-accent-200',
+        icon: <Clock className="h-14 w-14 text-accent-600" />,
         title: 'Payment Pending',
         subtitle: 'We are waiting for payment confirmation.',
-        textColor: 'text-amber-800',
+        textColor: 'text-accent-700',
       }
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 animate-fade-in">
       {/* Status header card */}
       <div className={`rounded-2xl border ${headerConfig.border} ${headerConfig.bg} p-8 text-center shadow-xs`}>
-        <div className="flex justify-center mb-4">{headerConfig.icon}</div>
+        {isConfirmed ? (
+          <div className="mb-4 flex justify-center min-h-[128px]">
+            <Suspense fallback={headerConfig.icon}>
+              <OrderSuccessScene className="h-32 w-32 mx-auto" />
+            </Suspense>
+          </div>
+        ) : (
+          <div className="flex justify-center mb-4">{headerConfig.icon}</div>
+        )}
         <h1 className={`text-2xl font-bold mb-2 ${headerConfig.textColor}`}>{headerConfig.title}</h1>
         <p className={`text-sm ${headerConfig.textColor} font-medium`}>{headerConfig.subtitle}</p>
       </div>
 
       {/* Order details card */}
-      <div className="bg-white border border-[#E5E9E4] rounded-2xl overflow-hidden shadow-soft">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-soft">
         {/* Meta */}
-        <div className="px-4 sm:px-6 py-4 border-b border-[#E5E9E4] bg-[#FAF9F6] grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
+        <div className="px-4 sm:px-6 py-4 border-b border-border bg-surface-alt grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
           <div>
-            <p className="text-xs font-semibold text-[#69736C] uppercase tracking-wider mb-0.5">Reference</p>
-            <p className="font-mono font-semibold text-[#202923] text-xs">{order.id.split('-')[0].toUpperCase()}</p>
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-0.5">Reference</p>
+            <p className="font-mono font-semibold text-text-primary text-xs">{order.id.split('-')[0].toUpperCase()}</p>
           </div>
           <div>
-            <p className="text-xs font-semibold text-[#69736C] uppercase tracking-wider mb-0.5">Date</p>
-            <p className="font-semibold text-[#202923] text-xs">
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-0.5">Date</p>
+            <p className="font-semibold text-text-primary text-xs">
               {new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
           </div>
           <div>
-            <p className="text-xs font-semibold text-[#69736C] uppercase tracking-wider mb-0.5">Status</p>
-            <span className="inline-flex items-center rounded-full bg-white border border-[#E5E9E4] px-2.5 py-0.5 text-[11px] font-semibold text-[#202923] capitalize">
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-0.5">Status</p>
+            <span className="inline-flex items-center rounded-full bg-surface border border-border px-2.5 py-0.5 text-[11px] font-semibold text-text-primary capitalize">
               {order.status.replace(/_/g, ' ')}
             </span>
           </div>
@@ -102,8 +117,8 @@ export const CustomerOrderConfirmation = () => {
         <div className="p-4 sm:p-6 space-y-4">
           {shop && (
             <div className="flex items-center gap-3 mb-2">
-              <div className="relative h-9 w-9 rounded-xl overflow-hidden bg-[#EDF5EE] border border-[#E5E9E4] shrink-0 flex items-center justify-center">
-                <Store className="h-4 w-4 text-[#176B45]/40" aria-hidden="true" />
+              <div className="relative h-9 w-9 rounded-xl overflow-hidden bg-primary-50 border border-border shrink-0 flex items-center justify-center">
+                <Store className="h-4 w-4 text-primary-500/40" aria-hidden="true" />
                 <img
                   src={getShopCoverImage(shop.name, shop.description)}
                   alt={shop.name}
@@ -114,38 +129,35 @@ export const CustomerOrderConfirmation = () => {
                 />
               </div>
               <div className="flex min-w-0 items-center gap-1.5">
-                <Store className="h-3.5 w-3.5 text-[#176B45]" aria-hidden="true" />
-                <h2 className="truncate font-bold text-[#202923]">{shop.name}</h2>
+                <Store className="h-3.5 w-3.5 text-primary-700" aria-hidden="true" />
+                <h2 className="truncate font-bold text-text-primary">{shop.name}</h2>
               </div>
             </div>
           )}
 
-          <div className="bg-white rounded-xl border border-[#E5E9E4] divide-y divide-[#E5E9E4] overflow-hidden">
+          <div className="bg-surface rounded-xl border border-border divide-y divide-border overflow-hidden">
             {order.items.map((item) => (
               <div key={item.id} className="flex justify-between items-center px-4 py-3.5 gap-4">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-[#FAF9F6] border border-[#E5E9E4] shrink-0 flex items-center justify-center">
-                    <Package className="h-5 w-5 text-[#176B45]/40" aria-hidden="true" />
-                    <img
+                  <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-surface-alt border border-border shrink-0 flex items-center justify-center">
+                    <ProductImage
                       src={getProductImage(item.product_name)}
                       alt={item.product_name}
-                      className="absolute inset-0 h-full w-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                      }}
+                      className="w-full h-full"
+                      imageClassName="object-cover"
                     />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-sm text-[#202923] line-clamp-1">{item.product_name}</p>
-                    <p className="text-xs text-[#69736C]">Qty {item.quantity} × {formatCurrency(item.unit_price)}</p>
+                    <p className="font-semibold text-sm text-text-primary line-clamp-1">{item.product_name}</p>
+                    <p className="text-xs text-text-secondary">Qty {item.quantity} × {formatCurrency(item.unit_price)}</p>
                   </div>
                 </div>
-                <span className="font-bold text-sm text-[#202923] shrink-0">{formatCurrency(item.line_total)}</span>
+                <span className="font-bold text-sm text-text-primary shrink-0">{formatCurrency(item.line_total)}</span>
               </div>
             ))}
-            <div className="flex justify-between items-center px-4 py-3.5 bg-[#FAF9F6]">
-              <p className="font-bold text-[#202923]">Total Paid</p>
-              <p className="font-bold text-lg text-[#202923]">{formatCurrency(order.total_amount)}</p>
+            <div className="flex justify-between items-center px-4 py-3.5 bg-surface-alt">
+              <p className="font-bold text-text-primary">Total Paid</p>
+              <p className="font-bold text-lg text-text-primary">{formatCurrency(order.total_amount)}</p>
             </div>
           </div>
         </div>
@@ -156,7 +168,7 @@ export const CustomerOrderConfirmation = () => {
         {isPending && (
           <Button
             onClick={() => navigate(`/customer/payment/${order.id}`)}
-            className="sm:flex-1 gap-2 bg-[#176B45] hover:bg-[#104B32] text-white"
+            className="sm:flex-1 gap-2 btn-primary"
           >
             Retry Payment <ArrowRight className="h-4 w-4" />
           </Button>
@@ -164,7 +176,7 @@ export const CustomerOrderConfirmation = () => {
         {isConfirmed && (
           <Button
             onClick={() => navigate(`/customer/orders/${order.id}`)}
-            className="sm:flex-1 gap-2 bg-[#176B45] hover:bg-[#104B32] text-white"
+            className="sm:flex-1 gap-2 btn-primary"
           >
             Track Order
           </Button>
@@ -172,7 +184,7 @@ export const CustomerOrderConfirmation = () => {
         <Button
           variant="outline"
           onClick={() => navigate('/customer')}
-          className="sm:flex-1 border-[#E5E9E4] text-[#202923]"
+          className="sm:flex-1 border-border text-text-primary hover:bg-surface-alt"
         >
           Continue Shopping
         </Button>

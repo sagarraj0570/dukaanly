@@ -116,3 +116,39 @@ async def test_concurrent_checkout_and_insufficient_stock(async_client: AsyncCli
     # Check inventory is exactly 1
     inv_p1 = (await async_client.get(f"/api/v1/products/{p1_id}/inventory", headers={"Authorization": f"Bearer {token_cust1}"})).json()
     assert inv_p1["stock"] == 1
+
+async def test_order_checkout_delivery_distance_validation(async_client: AsyncClient):
+    from app.db.session import engine
+    token_owner, token_cust1, _, shop_id, p1_id, _ = await setup_test_data(async_client, engine)
+    headers_cust = {"Authorization": f"Bearer {token_cust1}"}
+
+    # Shop is at lat 1.0, lon 1.0 (from setup_test_data)
+    # Add product to cart
+    await async_client.post("/api/v1/cart/items", json={"product_id": p1_id, "quantity": 1}, headers=headers_cust)
+
+    # 1. Attempt checkout with far destination (lat 2.0, lon 2.0 is > 100km away) -> Should fail 400
+    res_far = await async_client.post(
+        "/api/v1/orders/checkout",
+        json={
+            "idempotency_key": str(uuid.uuid4()),
+            "destination_latitude": 2.0,
+            "destination_longitude": 2.0
+        },
+        headers=headers_cust
+    )
+    assert res_far.status_code == 400
+    assert "outside this shop's 5 km delivery service zone" in res_far.json()["detail"]
+
+    # 2. Attempt checkout with nearby destination (lat 1.001, lon 1.001 is ~150 meters away) -> Should succeed 201
+    res_near = await async_client.post(
+        "/api/v1/orders/checkout",
+        json={
+            "idempotency_key": str(uuid.uuid4()),
+            "destination_latitude": 1.001,
+            "destination_longitude": 1.001
+        },
+        headers=headers_cust
+    )
+    assert res_near.status_code == 201
+    assert res_near.json()["status"] == "pending"
+

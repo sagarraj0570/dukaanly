@@ -96,4 +96,29 @@ describe("getDeliveryWsUrl", () => {
       });
     }
   });
+
+  it("safely upgrades insecure ws:// to wss:// when running on an https origin to prevent mixed-content blocks", () => {
+    vi.stubEnv("VITE_WS_URL", "ws://api.dukaanly.com/api/v1");
+    const originalProtocol = window.location.protocol;
+    try {
+      Object.defineProperty(window, "location", {
+        value: {
+          protocol: "https:",
+          host: "dukaanly.com",
+        },
+        writable: true,
+      });
+
+      const url = getDeliveryWsUrl("del-456", "token-secure");
+      expect(url).toBe("wss://api.dukaanly.com/api/v1/ws/deliveries/del-456?token=token-secure");
+    } finally {
+      Object.defineProperty(window, "location", {
+        value: {
+          protocol: originalProtocol,
+          host: "localhost:3000",
+        },
+        writable: true,
+      });
+    }
+  });
 });
