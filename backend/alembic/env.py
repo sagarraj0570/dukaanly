@@ -22,8 +22,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set the sqlalchemy.url to our dynamic configuration
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Set the sqlalchemy.url to our dynamic configuration (escaping % for ConfigParser)
+config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
 
 # add your model's MetaData object here
 # for 'autogenerate' support
