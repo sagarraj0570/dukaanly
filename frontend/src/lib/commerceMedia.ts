@@ -112,11 +112,48 @@ export function getProductImage(
   imageUrl?: string | null
 ): string {
   if (imageUrl && imageUrl.trim().length > 0) {
-    return imageUrl
+    const trimmed = imageUrl.trim()
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+      return trimmed
+    }
+    if (trimmed.startsWith('/static/')) {
+      const rawApiUrl = import.meta.env.VITE_API_URL
+      if (rawApiUrl && typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+        try {
+          const origin = new URL(rawApiUrl).origin
+          return `${origin}${trimmed}`
+        } catch {
+          // ignore
+        }
+      }
+      return trimmed
+    }
+    return trimmed
   }
 
   const lower = name.toLowerCase()
   const cat = (category || '').toLowerCase()
+
+  // 0. High-Priority Dairy & Fresh Bakery Delicacies
+  // Must precede personal care & generic matchers to avoid false positive matches on 'cream' / 'oil'
+  if (lower.includes('whipped cream') || lower.includes('whipping cream') || lower.includes('fresh cream') || lower.includes('malai')) {
+    return 'https://images.unsplash.com/photo-1517427294546-5aa121f68e8a?auto=format&fit=crop&w=600&q=80'
+  }
+  if (lower.includes('ice cream') || lower.includes('kulfi') || lower.includes('cassata')) {
+    return 'https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?auto=format&fit=crop&w=600&q=80'
+  }
+  if (lower.includes('pastry') || lower.includes('cream pastry')) {
+    return 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=600&q=80'
+  }
+  if (lower.includes('muffin') || lower.includes('cream muffin')) {
+    return 'https://images.unsplash.com/photo-1587668178277-295251f900ce?auto=format&fit=crop&w=600&q=80'
+  }
+  if (lower.includes('bourbon') || lower.includes('cream biscuit') || lower.includes('oreo')) {
+    return 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=600&q=80'
+  }
+  if (lower.includes('milk') || lower.includes('sudha') || lower.includes('amul milk') || lower.includes('full cream milk')) {
+    return 'https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=600&q=80'
+  }
 
   // 1. Medicines & Health
   if (lower.includes('dolo') || lower.includes('paracetamol') || lower.includes('fever')) {
@@ -187,7 +224,17 @@ export function getProductImage(
   if (lower.includes('shampoo') || lower.includes('conditioner') || lower.includes('head & shoulders')) {
     return 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=600&q=80'
   }
-  if (lower.includes('nivea') || lower.includes('moisturizer') || lower.includes('cream') || lower.includes('lotion')) {
+  if (
+    lower.includes('nivea') ||
+    lower.includes('moisturizer') ||
+    lower.includes('body lotion') ||
+    lower.includes('face cream') ||
+    lower.includes('skin cream') ||
+    lower.includes('cold cream') ||
+    lower.includes('vaseline') ||
+    (lower.includes('lotion') && !lower.includes('calamine')) ||
+    (lower.includes('cream') && (cat.includes('personal') || cat.includes('hygiene') || cat.includes('care') || cat.includes('beauty')))
+  ) {
     return 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80'
   }
 

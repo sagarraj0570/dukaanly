@@ -113,7 +113,7 @@ export const ProductDetail = () => {
           <div className="md:col-span-6 p-6 sm:p-8 bg-surface-alt border-b md:border-b-0 md:border-r border-border flex flex-col items-center justify-center">
             <div className="relative w-full max-w-[380px] aspect-square rounded-2xl overflow-hidden bg-surface border border-border flex items-center justify-center shadow-soft mx-auto">
               <ProductImage
-                src={product.image_url || resolvedImage}
+                src={resolvedImage}
                 alt={product.name}
                 category={product.category}
                 className="w-full h-full"

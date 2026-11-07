@@ -55,6 +55,26 @@ function getCategoryFallbackIcon(category?: string | null) {
   return Package
 }
 
+export function resolveMediaUrl(url?: string | null): string | null {
+  if (!url || typeof url !== 'string' || !url.trim()) return null
+  const trimmed = url.trim()
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+    return trimmed
+  }
+  if (trimmed.startsWith('/static/')) {
+    const rawApiUrl = import.meta.env.VITE_API_URL
+    if (rawApiUrl && typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+      try {
+        const origin = new URL(rawApiUrl).origin
+        return `${origin}${trimmed}`
+      } catch {
+        // fallback
+      }
+    }
+  }
+  return trimmed
+}
+
 export const ProductImage: React.FC<ProductImageProps> = ({
   src,
   alt,
@@ -68,12 +88,13 @@ export const ProductImage: React.FC<ProductImageProps> = ({
   ...rest
 }) => {
   const [hasError, setHasError] = useState(false)
-  const [isLoading, setIsLoading] = useState(Boolean(src && src.trim().length > 0))
+  const resolvedSrc = resolveMediaUrl(src)
+  const [isLoading, setIsLoading] = useState(Boolean(resolvedSrc && resolvedSrc.length > 0))
 
   const FallbackIcon = getCategoryFallbackIcon(category)
 
   // Empty or invalid src triggers fallback directly
-  const hasValidSource = Boolean(src && src.trim().length > 0 && !hasError)
+  const hasValidSource = Boolean(resolvedSrc && resolvedSrc.length > 0 && !hasError)
 
   return (
     <div
@@ -91,7 +112,7 @@ export const ProductImage: React.FC<ProductImageProps> = ({
 
       {hasValidSource ? (
         <img
-          src={src!}
+          src={resolvedSrc!}
           alt={alt}
           loading={loading}
           decoding={decoding}
