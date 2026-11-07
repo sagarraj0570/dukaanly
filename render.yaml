@@ -1,28 +1,35 @@
 services:
   # -------------------------------------------------------------
-  # 1. Backend Web Service (FastAPI API, WebSockets & Celery Worker)
+  # 1. Backend Web Service (FastAPI API, WebSockets)
   # -------------------------------------------------------------
   - type: web
     name: dukaanly-api
-    runtime: docker
-    dockerContext: backend
-    dockerfilePath: backend/Dockerfile
+    runtime: python
+    region: singapore
     plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: sh start.sh
     healthCheckPath: /api/v1/health/live
-    autoDeployTrigger: 'off'
     envVars:
-      - fromGroup: dukaanly-shared-config
       - key: DATABASE_URL
-        fromDatabase:
-          name: dukaanly-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: dukaanly-redis
-          property: connectionString
+        value: postgresql://postgres.zoapsnksqhzswayafszx:%2Cq6g4%23iSS9%40F%40R%40@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres
+      - key: APP_ENV
+        value: development
+      - key: RUN_MIGRATIONS
+        value: "false"
+      - key: SEED_DEMO_DATA
+        value: "false"
+      - key: ALLOW_MOCK_PAYMENTS
+        value: "true"
+      - key: JWT_SECRET_KEY
+        value: e8b1d9c5f4a7203b8c6e1a9d4f207b5e8c1d3a7e9b204f6a1c8d5e2b7a9f0c3d
       - key: ALLOWED_ORIGINS
-        value: https://dukaanly-frontend.onrender.com
+        value: "*"
+      - key: ROUTING_PROVIDER
+        value: osrm
+      - key: START_CELERY_EMBEDDED
+        value: "false"
 
   # -------------------------------------------------------------
   # 2. Frontend Static Site (React + Vite SPA)
@@ -31,51 +38,15 @@ services:
     name: dukaanly-frontend
     runtime: static
     rootDir: frontend
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     staticPublishPath: dist
-    autoDeployTrigger: 'off'
     routes:
+      - type: rewrite
+        source: /static/*
+        destination: https://dukaanly-api.onrender.com/static/*
       - type: rewrite
         source: /*
         destination: /index.html
     envVars:
       - key: VITE_API_URL
         value: https://dukaanly-api.onrender.com/api/v1
-      - key: VITE_WS_URL
-        value: "" # Dynamically derived from VITE_API_URL via wss://
-
-  # -------------------------------------------------------------
-  # 3. Managed Key Value / Redis (Pub/Sub & Celery Transport)
-  # -------------------------------------------------------------
-  - type: keyvalue
-    name: dukaanly-redis
-    plan: free
-    ipAllowList: [] # Private network only
-
-databases:
-  # -------------------------------------------------------------
-  # 4. Managed PostgreSQL with PostGIS
-  # -------------------------------------------------------------
-  - name: dukaanly-postgres
-    plan: free
-    databaseName: dukaanly
-    user: dukaanly_user
-    postgresMajorVersion: "16"
-    ipAllowList: [] # Private network only
-
-# ---------------------------------------------------------------
-# 5. Shared Environment Groups (Variables & Auto-Generated Secrets)
-# ---------------------------------------------------------------
-envVarGroups:
-  - name: dukaanly-shared-config
-    envVars:
-      - key: APP_ENV
-        value: production
-      - key: DEBUG
-        value: "false"
-      - key: ALLOW_MOCK_PAYMENTS
-        value: "false"
-      - key: JWT_ALGORITHM
-        value: HS256
-      - key: JWT_SECRET_KEY
-        generateValue: true

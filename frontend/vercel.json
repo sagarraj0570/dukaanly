@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/static/:path*",
+      "destination": "https://dukaanly-api.onrender.com/static/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
