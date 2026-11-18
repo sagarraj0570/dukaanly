@@ -115,11 +115,12 @@ async def get_osrm_http_client() -> httpx.AsyncClient:
         )
         timeout_val = getattr(settings, "OSRM_TIMEOUT_SECONDS", 4.0)
         _osrm_http_client = httpx.AsyncClient(
+            headers={"User-Agent": "Dukaanly-App/1.0 (Hyperlocal Telematics)"},
             timeout=httpx.Timeout(
-                connect=2.0,
+                connect=3.0,
                 read=timeout_val,
                 write=timeout_val,
-                pool=2.0,
+                pool=3.0,
             ),
             limits=limits,
         )
@@ -243,7 +244,15 @@ class OSRMRoutingService:
             semaphore = get_osrm_semaphore()
             async with semaphore:
                 client = await get_osrm_http_client()
-                response = await client.get(url, params=params)
+                try:
+                    response = await client.get(url, params=params)
+                except (httpx.ConnectError, httpx.TimeoutException) as conn_err:
+                    fallback_base = "https://routing.openstreetmap.de/routed-car"
+                    if fallback_base not in url:
+                        fb_url = f"{fallback_base}/route/v1/{profile}/{coords_param}"
+                        response = await client.get(fb_url, params=params)
+                    else:
+                        raise
 
             if response.status_code == 200:
                 try:
@@ -359,7 +368,15 @@ class OSRMRoutingService:
             semaphore = get_osrm_semaphore()
             async with semaphore:
                 client = await get_osrm_http_client()
-                response = await client.get(url, params=params)
+                try:
+                    response = await client.get(url, params=params)
+                except (httpx.ConnectError, httpx.TimeoutException) as conn_err:
+                    fallback_base = "https://routing.openstreetmap.de/routed-car"
+                    if fallback_base not in url:
+                        fb_url = f"{fallback_base}/table/v1/{profile}/{coords_str}"
+                        response = await client.get(fb_url, params=params)
+                    else:
+                        raise
 
             if response.status_code == 200:
                 try:

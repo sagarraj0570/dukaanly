@@ -62,6 +62,11 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
     terminalStatus ||
     (route?.status === 'cancelled' ? 'cancelled' : route?.status === 'delivered' ? 'delivered' : null)
 
+  const hasResolvedLocations = Boolean(
+    (route?.shop_location ?? fallbackShopLocation) &&
+    (route?.customer_location ?? fallbackCustomerLocation)
+  )
+
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const riderMarkerRef = useRef<L.Marker | null>(null)
@@ -428,8 +433,8 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
           </div>
         )}
 
-        {/* Error / Route Unavailable Banner Overlay */}
-        {!isTerminalResolved && isError && !route && (
+        {/* Error / Route Unavailable Banner Overlay (Only if locations cannot be resolved) */}
+        {!isTerminalResolved && isError && !route && !hasResolvedLocations && (
           <div className="absolute inset-x-3 bottom-3 bg-surface border border-turmeric rounded-[12px] p-3 shadow-none z-10 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <AlertTriangle className="h-4 w-4 text-turmeric-ink shrink-0" />

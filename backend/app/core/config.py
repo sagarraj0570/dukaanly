@@ -91,9 +91,9 @@ class Settings(BaseSettings):
 
     # Routing Infrastructure Settings
     ROUTING_PROVIDER: str = "osrm"
-    OSRM_BASE_URL: str = "http://localhost:5000"
-    OSRM_TIMEOUT_SECONDS: float = 4.0
-    OSRM_REQUEST_TIMEOUT_SECONDS: float = 4.0
+    OSRM_BASE_URL: str = "https://routing.openstreetmap.de/routed-car"
+    OSRM_TIMEOUT_SECONDS: float = 6.0
+    OSRM_REQUEST_TIMEOUT_SECONDS: float = 6.0
     OSRM_CACHE_TTL_SECONDS: int = 300
     OSRM_MAX_CONCURRENT_REQUESTS: int = 10
     RIDER_MAX_CANDIDATES_TO_ROUTE: int = 5
