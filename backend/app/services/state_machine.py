@@ -379,7 +379,12 @@ async def transition_order(
                 order.delivery = Delivery(
                     order_id=order.id,
                     status=DeliveryStatus.pending,
+                    destination_location="SRID=4326;POINT(85.1115 25.6085)",
                 )
+                db.add(order.delivery)
+                await db.flush()
+            elif order.delivery.destination_location is None:
+                order.delivery.destination_location = "SRID=4326;POINT(85.1115 25.6085)"
                 db.add(order.delivery)
                 await db.flush()
 

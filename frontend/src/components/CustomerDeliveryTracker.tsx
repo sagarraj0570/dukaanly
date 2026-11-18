@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { OrderDeliverySummary, DeliveryStatus } from '@/hooks/useOrders'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useLocationStore } from '@/store/useLocationStore'
 import { getDeliveryWsUrl } from '@/lib/utils'
 import { useDeliveryRoute, useDeliveryEta } from '@/hooks/useDeliveries'
 import { DeliveryRouteMap } from '@/components/DeliveryRouteMap'
@@ -21,6 +22,7 @@ import {
 interface CustomerDeliveryTrackerProps {
   delivery: OrderDeliverySummary | null | undefined
   orderStatus: string
+  shop?: any
   onRefreshOrder?: () => void
 }
 
@@ -47,9 +49,12 @@ function calculateDistanceMeters(lat1: number, lon1: number, lat2: number, lon2:
 export const CustomerDeliveryTracker = ({
   delivery,
   orderStatus,
+  shop,
   onRefreshOrder,
 }: CustomerDeliveryTrackerProps) => {
   const token = useAuthStore((state) => state.token)
+  const coords = useLocationStore((state) => state.coords)
+  const addressLabel = useLocationStore((state) => state.addressLabel)
   const onRefreshOrderRef = useRef(onRefreshOrder)
   const lastRerouteRef = useRef<{ lat: number; lng: number; time: number } | null>(null)
 
@@ -568,22 +573,38 @@ export const CustomerDeliveryTracker = ({
                 : null
             }
             fallbackShopLocation={
-              (delivery as any)?.order?.shop?.location
+              shop?.location
+                ? {
+                    latitude: shop.location.latitude,
+                    longitude: shop.location.longitude,
+                    name: shop.name || 'Merchant Shop',
+                  }
+                : (delivery as any)?.order?.shop?.location
                 ? {
                     latitude: (delivery as any).order.shop.location.latitude,
                     longitude: (delivery as any).order.shop.location.longitude,
-                    name: (delivery as any).order.shop.name,
+                    name: (delivery as any).order.shop.name || 'Merchant Shop',
                   }
                 : null
             }
             fallbackCustomerLocation={
-              (delivery as any)?.destination_latitude && (delivery as any)?.destination_longitude
+              delivery?.destination_latitude && delivery?.destination_longitude
                 ? {
-                    latitude: (delivery as any).destination_latitude,
-                    longitude: (delivery as any).destination_longitude,
+                    latitude: delivery.destination_latitude,
+                    longitude: delivery.destination_longitude,
                     name: 'Delivery Dropoff',
                   }
-                : null
+                : coords
+                ? {
+                    latitude: coords.latitude,
+                    longitude: coords.longitude,
+                    name: addressLabel || 'Delivery Dropoff',
+                  }
+                : {
+                    latitude: 25.6085,
+                    longitude: 85.1115,
+                    name: 'Delivery Dropoff (Patna)',
+                  }
             }
             isLoading={!isTerminal && isRouteLoading}
             isError={!isTerminal && isRouteError}

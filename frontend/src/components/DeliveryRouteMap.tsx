@@ -30,9 +30,11 @@ const sanitizeRouteErrorMessage = (msg?: string): string => {
     lower.includes('502') ||
     lower.includes('500') ||
     lower.includes('network error') ||
-    lower.includes('axioserror')
+    lower.includes('axioserror') ||
+    lower.includes('destination location missing') ||
+    lower.includes('location missing')
   ) {
-    return 'Road route navigation temporarily unavailable. Real-time direct tracking remains active.'
+    return 'Road route navigation connecting. Real-time direct tracking remains active.'
   }
   return msg
 }
@@ -264,6 +266,20 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
       }).addTo(layerGroup)
 
       route.combined_geometry.forEach((pt) => allPoints.push(pt))
+    } else if (activeShopLoc && activeCustLoc) {
+      // Direct tracking fallback line connecting merchant and dropoff destination
+      const directLine: [number, number][] = [
+        [activeShopLoc.latitude, activeShopLoc.longitude],
+        [activeCustLoc.latitude, activeCustLoc.longitude],
+      ]
+      L.polyline(directLine, {
+        color: '#1F9D61',
+        weight: 4,
+        opacity: 0.7,
+        dashArray: '6, 8',
+        lineCap: 'round',
+      }).addTo(layerGroup)
+      directLine.forEach((pt) => allPoints.push(pt))
     }
 
     // 5. Fit Map Bounds

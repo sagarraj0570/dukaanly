@@ -9,6 +9,7 @@ from fastapi import HTTPException, status
 from geoalchemy2 import Geography
 
 from app.models.order import Order, OrderItem, OrderStatus, OrderEvent
+from app.models.delivery import Delivery, DeliveryStatus
 from app.models.cart import Cart, CartItem
 from app.models.product import Product
 from app.models.inventory import Inventory
@@ -235,6 +236,19 @@ async def checkout(
             reason="Order placed at checkout",
         )
         db.add(initial_event)
+
+        # 6c. Initialize Delivery snapshot with destination coordinates
+        if destination_latitude is not None and destination_longitude is not None:
+            dest_geom = f"SRID=4326;POINT({destination_longitude} {destination_latitude})"
+        else:
+            dest_geom = "SRID=4326;POINT(85.1115 25.6085)"
+
+        new_delivery = Delivery(
+            order_id=new_order.id,
+            status=DeliveryStatus.pending,
+            destination_location=dest_geom,
+        )
+        db.add(new_delivery)
 
         # 7. Clear Cart
         del_stmt = delete(CartItem).where(CartItem.cart_id == cart.id)

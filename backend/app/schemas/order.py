@@ -27,11 +27,41 @@ class OrderDeliverySummary(BaseModel):
     id: uuid.UUID
     status: DeliveryStatus
     rider_id: uuid.UUID | None = None
+    destination_latitude: float | None = None
+    destination_longitude: float | None = None
     assigned_at: datetime | None = None
     picked_up_at: datetime | None = None
     delivered_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode='before')
+    @classmethod
+    def convert_location(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            return data
+            
+        from geoalchemy2.elements import WKBElement
+        from geoalchemy2.shape import to_shape
+
+        res = {
+            "id": getattr(data, "id", None),
+            "status": getattr(data, "status", None),
+            "rider_id": getattr(data, "rider_id", None),
+            "destination_latitude": getattr(data, "destination_latitude", None),
+            "destination_longitude": getattr(data, "destination_longitude", None),
+            "assigned_at": getattr(data, "assigned_at", None),
+            "picked_up_at": getattr(data, "picked_up_at", None),
+            "delivered_at": getattr(data, "delivered_at", None),
+        }
+
+        dest_loc = getattr(data, 'destination_location', None)
+        if dest_loc is not None and isinstance(dest_loc, WKBElement):
+            point = to_shape(dest_loc)
+            res["destination_latitude"] = point.y
+            res["destination_longitude"] = point.x
+
+        return res
 
 class OrderEventResponse(BaseModel):
     id: uuid.UUID

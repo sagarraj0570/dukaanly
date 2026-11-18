@@ -19,6 +19,8 @@ export interface OrderDeliverySummary {
   id: string
   status: DeliveryStatus
   rider_id: string | null
+  destination_latitude?: number | null
+  destination_longitude?: number | null
   assigned_at: string | null
   picked_up_at: string | null
   delivered_at: string | null

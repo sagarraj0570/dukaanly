@@ -146,6 +146,7 @@ export const CustomerOrderDetail = () => {
       <CustomerDeliveryTracker
         delivery={order.delivery}
         orderStatus={order.status}
+        shop={shop}
         onRefreshOrder={() => refetch()}
       />
 
